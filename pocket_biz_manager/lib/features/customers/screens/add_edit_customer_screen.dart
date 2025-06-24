@@ -63,7 +63,7 @@ class _AddEditCustomerScreenState extends State<AddEditCustomerScreen> {
     String successMessage = '';
     String errorMessage = '';
 
-    final currentCustomer = Customer(
+    Customer customerToSave = Customer( // Renamed for clarity
       customerID: _isEditing ? widget.customer!.customerID : null,
       customerName: _nameController.text.trim(),
       idNumber: _idNumberController.text.trim().isEmpty ? null : _idNumberController.text.trim(),
@@ -76,23 +76,36 @@ class _AddEditCustomerScreenState extends State<AddEditCustomerScreen> {
 
     try {
       if (_isEditing) {
-        success = await provider.updateCustomer(currentCustomer);
+        success = await provider.updateCustomer(customerToSave);
         successMessage = 'Customer updated successfully!';
         errorMessage = provider.errorMessage ?? 'Failed to update customer.';
+         if (success && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(successMessage), backgroundColor: Colors.green),
+          );
+          Navigator.of(context).pop(customerToSave); // Return updated customer
+        }
       } else {
-        success = await provider.addCustomer(currentCustomer);
-        successMessage = 'Customer added successfully!';
-        errorMessage = provider.errorMessage ?? 'Failed to add customer. Name or phone might already exist.';
+        Customer? newCustomer = await provider.addCustomer(customerToSave);
+        if (newCustomer != null) {
+          success = true;
+          customerToSave = newCustomer; // Get customer with ID
+          successMessage = 'Customer added successfully!';
+           if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(successMessage), backgroundColor: Colors.green),
+            );
+            Navigator.of(context).pop(customerToSave); // Return new customer with ID
+          }
+        } else {
+          success = false;
+          errorMessage = provider.errorMessage ?? 'Failed to add customer. Name or phone might already exist.';
+        }
       }
 
       if (!mounted) return;
 
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(successMessage), backgroundColor: Colors.green),
-        );
-        Navigator.of(context).pop();
-      } else {
+      if (!success) { // Only show error if not already handled by popping
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(errorMessage), backgroundColor: Theme.of(context).colorScheme.error),
         );
