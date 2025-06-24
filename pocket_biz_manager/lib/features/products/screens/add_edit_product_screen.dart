@@ -160,7 +160,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                   border: const OutlineInputBorder(),
                   prefixIcon: Icon(Icons.category_outlined, color: Theme.of(context).inputDecorationTheme.labelStyle?.color),
                 ),
-                items: categoryProvider.categories.map<DropdownMenuItem<int>>((Category category) {
+                items: categoryProvider.categories.map<DropdownMenuItem<int>>((model.Category category) { // Explicitly use model.Category
                   return DropdownMenuItem<int>(
                     value: category.categoryID,
                     child: Text(category.categoryName),

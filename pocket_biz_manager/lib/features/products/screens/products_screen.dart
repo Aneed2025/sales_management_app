@@ -55,16 +55,24 @@ class _ProductsScreenState extends State<ProductsScreen> {
 
     if (confirmed == true) {
       final success = await provider.deleteProduct(product.productID!);
-      if (mounted) {
-        final message = success
-            ? 'Product "${product.productName}" deleted.'
-            : provider.errorMessage ?? 'Failed to delete "${product.productName}". It might be in use or an error occurred.';
-        final bgColor = success ? Colors.green : Theme.of(context).colorScheme.error;
+      if (!mounted) return; // Check mounted before using context
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message), backgroundColor: bgColor),
-        );
+      final scaffoldMessenger = ScaffoldMessenger.of(context);
+      final theme = Theme.of(context);
+      final String message;
+      final Color bgColor;
+
+      if (success) {
+        message = 'Product "${product.productName}" deleted.';
+        bgColor = Colors.green;
+      } else {
+        message = provider.errorMessage ?? 'Failed to delete "${product.productName}". It might be in use or an error occurred.';
+        bgColor = theme.colorScheme.error;
       }
+
+      scaffoldMessenger.showSnackBar(
+        SnackBar(content: Text(message), backgroundColor: bgColor),
+      );
     }
   }
 
