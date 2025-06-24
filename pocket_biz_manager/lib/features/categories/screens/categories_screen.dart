@@ -54,19 +54,23 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
 
     if (confirmed == true) {
       final success = await provider.deleteCategory(category.categoryID!);
-      if (mounted) {
-          if (!success) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Failed to delete "${category.categoryName}". It might be in use or an error occurred.'),
-              backgroundColor: Theme.of(context).colorScheme.error,
-            ),
-          );
-        } else {
-           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Category "${category.categoryName}" deleted.'),
-              backgroundColor: Colors.green,
+      if (!mounted) return; // Check mounted before using context
+
+      final scaffoldMessenger = ScaffoldMessenger.of(context);
+      final theme = Theme.of(context);
+
+      if (!success) {
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: Text('Failed to delete "${category.categoryName}". It might be in use or an error occurred.'),
+            backgroundColor: theme.colorScheme.error,
+          ),
+        );
+      } else {
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: Text('Category "${category.categoryName}" deleted.'),
+            backgroundColor: Colors.green,
             ),
           );
         }

@@ -1,14 +1,14 @@
 import 'package:flutter/foundation.dart';
-import '../models/category_model.dart';
+import '../models/category_model.dart' as model; // Use prefix 'model'
 import '../../../core/database/database_service.dart';
 
 class CategoryProvider with ChangeNotifier {
   final DatabaseService _dbService = DatabaseService.instance;
 
-  List<Category> _categories = [];
+  List<model.Category> _categories = []; // Use model.Category
   bool _isLoading = false;
 
-  List<Category> get categories => _categories;
+  List<model.Category> get categories => _categories; // Use model.Category
   bool get isLoading => _isLoading;
 
   CategoryProvider() {
@@ -19,7 +19,7 @@ class CategoryProvider with ChangeNotifier {
     _setLoading(true);
     try {
       final List<Map<String, dynamic>> maps = await _dbService.getAllCategories();
-      _categories = maps.map((map) => Category.fromMap(map)).toList();
+      _categories = maps.map((map) => model.Category.fromMap(map)).toList(); // Use model.Category
     } catch (e) {
       // Handle error, maybe log it or show a message to the user
       debugPrint("Error fetching categories: $e");
@@ -31,7 +31,7 @@ class CategoryProvider with ChangeNotifier {
   Future<bool> addCategory(String categoryName) async {
     _setLoading(true);
     try {
-      Category newCategory = Category(categoryName: categoryName.trim());
+      model.Category newCategory = model.Category(categoryName: categoryName.trim()); // Use model.Category
       // Check if category with the same name already exists (case-insensitive)
       bool exists = _categories.any((cat) => cat.categoryName.toLowerCase() == newCategory.categoryName.toLowerCase());
       if (exists) {
@@ -56,7 +56,7 @@ class CategoryProvider with ChangeNotifier {
     return false; // Indicate failure
   }
 
-  Future<bool> updateCategory(Category category) async {
+  Future<bool> updateCategory(model.Category category) async { // Use model.Category
     _setLoading(true);
     try {
       // Check if another category with the same name already exists (case-insensitive)
@@ -115,7 +115,7 @@ class CategoryProvider with ChangeNotifier {
     return false; // Indicate failure
   }
 
-  Category? getCategoryById(int id) {
+  model.Category? getCategoryById(int id) { // Use model.Category
     try {
       return _categories.firstWhere((cat) => cat.categoryID == id);
     } catch (e) {

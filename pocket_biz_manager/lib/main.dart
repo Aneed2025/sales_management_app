@@ -1,9 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'app/app_theme.dart';
-// Import other providers and screens later
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'app/app_theme.dart';
+import 'core/database/database_service.dart';
+import 'features/categories/providers/category_provider.dart';
+import 'features/payment_methods/providers/payment_method_provider.dart';
+import 'features/products/providers/product_provider.dart';
+import 'features/categories/screens/categories_screen.dart';
+import 'features/payment_methods/screens/payment_methods_screen.dart';
+import 'features/products/screens/products_screen.dart';
 
-import 'core/database/database_service.dart'; // Import DatabaseService
+// Import other providers and screens later // This line can be removed
 
 void main() async { // Made main async for potential async initializations
   // Ensure Flutter bindings are initialized
@@ -26,11 +35,11 @@ class MyApp extends StatelessWidget {
     // MultiProvider will be used to provide various services and state managers
     return MultiProvider(
       providers: [
-        // Example: ChangeNotifierProvider(create: (_) => ThemeNotifier()),
         ChangeNotifierProvider(create: (_) => CategoryProvider()),
         ChangeNotifierProvider(create: (_) => PaymentMethodProvider()),
-        ChangeNotifierProvider(create: (ctx) => ProductProvider()), // Add ProductProvider
-        // TODO: Add other providers for features here
+        ChangeNotifierProvider(create: (_) => ProductProvider()),
+        // TODO: Add other providers for features here (Example: ThemeNotifier if used)
+        // ChangeNotifierProvider(create: (_) => ThemeNotifier()),
       ],
       child: MaterialApp(
         title: 'PocketBiz Manager', // NAD Currency will be handled by intl
@@ -44,10 +53,6 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-
-import 'features/categories/screens/categories_screen.dart';
-import 'features/payment_methods/screens/payment_methods_screen.dart';
-import 'features/products/screens/products_screen.dart'; // Import ProductsScreen
 
 // A temporary placeholder screen, modified to navigate to various management screens
 class PlaceholderScreen extends StatelessWidget {
