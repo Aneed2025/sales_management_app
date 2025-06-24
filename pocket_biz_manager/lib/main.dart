@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'app/app_theme.dart';
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'app/app_theme.dart';
+// Removed duplicate: import 'package:flutter/material.dart';
+// Removed duplicate: import 'package:provider/provider.dart';
+// Removed duplicate: import 'app/app_theme.dart'; // app_theme was also duplicated in the error list implicitly
 import 'core/database/database_service.dart';
 import 'features/categories/providers/category_provider.dart';
 import 'features/payment_methods/providers/payment_method_provider.dart';
