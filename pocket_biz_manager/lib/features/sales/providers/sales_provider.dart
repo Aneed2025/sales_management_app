@@ -67,7 +67,8 @@ class SalesProvider with ChangeNotifier {
 
     // Simplified: Get count of invoices for today to make a pseudo-sequential number
     // This is NOT robust for multi-user or if app closes and reopens, needs a proper sequence generator
-    final List<Map<String, dynamic>> maps = await _dbService.db.rawQuery(
+    final db = await _dbService.database; // Get database instance
+    final List<Map<String, dynamic>> maps = await db.rawQuery( // Use the instance
       "SELECT COUNT(*) as count FROM Sales_Invoices WHERE InvoiceNumber LIKE 'INV-${datePart}-%'"
     );
     int count = 0;
