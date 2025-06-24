@@ -2,19 +2,27 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/payment_method_provider.dart';
 import '../models/payment_method_model.dart';
-import 'add_edit_payment_method_screen.dart';
-import '../widgets/payment_method_list_item.dart'; // Will create this widget
+import './add_edit_payment_method_screen.dart'; // Corrected import path
+import '../widgets/payment_method_list_item.dart';
 
 class PaymentMethodsScreen extends StatefulWidget {
   const PaymentMethodsScreen({super.key});
 
-  static const routeName = '/payment-methods'; // For navigation
+  static const routeName = '/payment-methods';
 
   @override
   State<PaymentMethodsScreen> createState() => _PaymentMethodsScreenState();
 }
 
 class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Fetch payment methods when the screen is initialized
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<PaymentMethodProvider>(context, listen: false).fetchPaymentMethods();
+    });
+  }
 
   void _navigateToAddEditScreen(BuildContext context, {PaymentMethod? method}) {
     Navigator.of(context).push(
@@ -46,7 +54,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
 
     if (confirmed == true) {
       final success = await provider.deletePaymentMethod(method.paymentMethodID!);
-      if (!mounted) return; // Check mounted before using context
+      if (!mounted) return;
 
       final scaffoldMessenger = ScaffoldMessenger.of(context);
       final theme = Theme.of(context);
@@ -63,9 +71,8 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
           SnackBar(
             content: Text('Payment method "${method.methodName}" deleted.'),
             backgroundColor: Colors.green,
-            ),
-          );
-        }
+          ),
+        );
       }
     }
   }
@@ -89,7 +96,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                   const Text('No payment methods found.', style: TextStyle(fontSize: 18)),
                   const SizedBox(height: 10),
                   ElevatedButton(
-                    onPressed: () => _navigateToAddEditScreen(context),
+                    onPressed: () => _navigateToAddEditScreen(context), // Corrected
                     child: const Text('Add First Payment Method'),
                   ),
                 ],
@@ -104,9 +111,9 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                 final method = provider.paymentMethods[index];
                 return PaymentMethodListItem(
                   paymentMethod: method,
-                  onTap: () => _navigateToAddEditScreen(context, method: method),
-                  onDelete: () => _confirmDelete(context, provider, method),
-                  onToggleActive: (value) async {
+                  onTap: () => _navigateToAddEditScreen(context, method: method), // Corrected
+                  onDelete: () => _confirmDelete(context, provider, method), // Corrected
+                  onToggleActive: (value) async { // Ensure this is handled correctly by provider
                     await provider.togglePaymentMethodStatus(method);
                   },
                 );
@@ -116,10 +123,11 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
         },
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _navigateToAddEditScreen(context),
+        onPressed: () => _navigateToAddEditScreen(context), // Corrected
         tooltip: 'Add Payment Method',
         child: const Icon(Icons.add),
       ),
     );
   }
 }
+// Ensuring no trailing characters or lines after this closing brace.
