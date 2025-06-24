@@ -99,16 +99,36 @@ class DatabaseService {
       CREATE TABLE Sales_Invoices (
         InvoiceID INTEGER PRIMARY KEY AUTOINCREMENT,
         InvoiceNumber TEXT NOT NULL UNIQUE,
-        InvoiceDate TEXT NOT NULL, -- Store as ISO8601 String (YYYY-MM-DD HH:MM:SS) or INTEGER (timestamp)
+        InvoiceDate TEXT NOT NULL,
         CustomerID INTEGER NOT NULL,
-        TotalAmount REAL DEFAULT 0,
-        AmountPaid REAL DEFAULT 0,
-        BalanceDue REAL DEFAULT 0, -- Should be TotalAmount - AmountPaid
-        PaymentStatus TEXT DEFAULT 'Unpaid', -- "Unpaid", "Partially Paid", "Paid"
-        CreatedByUserID INTEGER, -- For future use
+        TotalAmount REAL NOT NULL DEFAULT 0,
+        AmountPaid REAL NOT NULL DEFAULT 0,
+        BalanceDue REAL NOT NULL DEFAULT 0,
+        PaymentStatus TEXT NOT NULL DEFAULT 'Unpaid',
+        CreatedByUserID INTEGER,
         Notes TEXT,
+        IsInstallment INTEGER NOT NULL DEFAULT 0,
+        NumberOfInstallments INTEGER,
+        DefaultInstallmentAmount REAL,
+        IsInCollection INTEGER NOT NULL DEFAULT 0,
+        DateSentToCollection TEXT,
+        CollectionAgencyID INTEGER,
         FOREIGN KEY (CustomerID) REFERENCES Customers (CustomerID),
-        FOREIGN KEY (CreatedByUserID) REFERENCES Users (UserID)
+        FOREIGN KEY (CreatedByUserID) REFERENCES Users (UserID),
+        FOREIGN KEY (CollectionAgencyID) REFERENCES Collection_Agencies (AgencyID)
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE Invoice_Installments (
+        InstallmentID INTEGER PRIMARY KEY AUTOINCREMENT,
+        InvoiceID INTEGER NOT NULL,
+        InstallmentNumber INTEGER NOT NULL,
+        DueDate TEXT NOT NULL, -- User sets first due date, subsequent are monthly
+        AmountDue REAL NOT NULL, -- Specific amount for this installment
+        AmountPaid REAL NOT NULL DEFAULT 0,
+        Status TEXT NOT NULL DEFAULT 'Pending', -- "Pending", "Partially Paid", "Paid"
+        FOREIGN KEY (InvoiceID) REFERENCES Sales_Invoices (InvoiceID) ON DELETE CASCADE
       )
     ''');
 
@@ -141,15 +161,31 @@ class DatabaseService {
     await db.execute('''
       CREATE TABLE Sales_Payments (
         PaymentID INTEGER PRIMARY KEY AUTOINCREMENT,
-        InvoiceID INTEGER, -- Can be null if general payment on account
+        InvoiceID INTEGER NOT NULL,
         CustomerID INTEGER NOT NULL,
         PaymentDate TEXT NOT NULL,
         Amount REAL NOT NULL,
         PaymentMethodID INTEGER NOT NULL,
+        CollectedByAgency INTEGER NOT NULL DEFAULT 0, -- 1 if collected by agency, 0 otherwise
+        AppliedToInstallmentID INTEGER, -- FK to Invoice_Installments, NULLABLE
         Notes TEXT,
         FOREIGN KEY (InvoiceID) REFERENCES Sales_Invoices (InvoiceID),
         FOREIGN KEY (CustomerID) REFERENCES Customers (CustomerID),
-        FOREIGN KEY (PaymentMethodID) REFERENCES Payment_Methods (PaymentMethodID)
+        FOREIGN KEY (PaymentMethodID) REFERENCES Payment_Methods (PaymentMethodID),
+        FOREIGN KEY (AppliedToInstallmentID) REFERENCES Invoice_Installments (InstallmentID)
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE Collection_Agencies (
+        AgencyID INTEGER PRIMARY KEY AUTOINCREMENT,
+        AgencyName TEXT NOT NULL,
+        ContactPerson TEXT,
+        PhoneNumber TEXT,
+        Email TEXT,
+        Address TEXT,
+        FileNumber TEXT,
+        IsActive INTEGER NOT NULL DEFAULT 1
       )
     ''');
 
@@ -447,4 +483,88 @@ class DatabaseService {
     );
   }
 
+  // CollectionAgency Table CRUD Methods
+  Future<int> insertCollectionAgency(Map<String, dynamic> row) async {
+    Database db = await instance.database;
+    return await db.insert('Collection_Agencies', row);
+  }
+
+  Future<List<Map<String, dynamic>>> getAllCollectionAgencies() async {
+    Database db = await instance.database;
+    return await db.query('Collection_Agencies', orderBy: 'IsActive DESC, AgencyName ASC');
+  }
+
+  Future<Map<String, dynamic>?> getCollectionAgencyById(int id) async {
+    Database db = await instance.database;
+    List<Map<String, dynamic>> maps = await db.query(
+      'Collection_Agencies',
+      where: 'AgencyID = ?',
+      whereArgs: [id],
+    );
+    if (maps.isNotEmpty) {
+      return maps.first;
+    }
+    return null;
+  }
+
+  Future<int> updateCollectionAgency(Map<String, dynamic> row) async {
+    Database db = await instance.database;
+    int id = row['AgencyID'];
+    return await db.update(
+      'Collection_Agencies',
+      row,
+      where: 'AgencyID = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<int> deleteCollectionAgency(int id) async {
+    Database db = await instance.database;
+    // TODO: Before deleting an agency, check if it's linked to any Sales_Invoices.
+    // If so, prevent deletion or offer to unassign/mark as inactive.
+    return await db.delete(
+      'Collection_Agencies',
+      where: 'AgencyID = ?',
+      whereArgs: [id],
+    );
+  }
+
+  // InvoiceInstallment Table CRUD Methods
+  Future<int> insertInvoiceInstallment(Map<String, dynamic> row) async {
+    Database db = await instance.database;
+    return await db.insert('Invoice_Installments', row);
+  }
+
+  Future<List<Map<String, dynamic>>> getInstallmentsForInvoice(int invoiceID) async {
+    Database db = await instance.database;
+    return await db.query(
+      'Invoice_Installments',
+      where: 'InvoiceID = ?',
+      whereArgs: [invoiceID],
+      orderBy: 'InstallmentNumber ASC',
+    );
+  }
+
+  Future<int> updateInvoiceInstallment(Map<String, dynamic> row) async {
+    Database db = await instance.database;
+    int id = row['InstallmentID'];
+    return await db.update(
+      'Invoice_Installments',
+      row,
+      where: 'InstallmentID = ?',
+      whereArgs: [id],
+    );
+  }
+
+  // deleteInvoiceInstallment might not be commonly used directly,
+  // as installments are usually deleted when the parent invoice is deleted (due to ON DELETE CASCADE)
+  // or all are deleted/recreated if installment plan changes drastically.
+  Future<int> deleteInstallmentsForInvoice(int invoiceID) async {
+    Database db = await instance.database;
+    return await db.delete(
+      'Invoice_Installments',
+      where: 'InvoiceID = ?',
+      whereArgs: [invoiceID],
+    );
+  }
 }
