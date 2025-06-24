@@ -12,7 +12,10 @@ import 'features/categories/screens/categories_screen.dart';
 import 'features/payment_methods/screens/payment_methods_screen.dart';
 import 'features/products/screens/products_screen.dart';
 import 'features/collection_agencies/screens/collection_agencies_screen.dart';
-import 'features/sales/screens/add_edit_sales_invoice_screen.dart'; // Added import
+import 'features/sales/screens/add_edit_sales_invoice_screen.dart';
+import 'features/customers/screens/customers_screen.dart'; // Added import for CustomersScreen
+import 'features/customers/providers/customer_provider.dart'; // Added import for CustomerProvider (already in providers list, but good for explicitness if needed elsewhere)
+
 
 // Import other providers and screens later // This line can be removed
 
@@ -41,7 +44,8 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => PaymentMethodProvider()),
         ChangeNotifierProvider(create: (_) => ProductProvider()),
         ChangeNotifierProvider(create: (_) => CollectionAgencyProvider()),
-        ChangeNotifierProvider(create: (_) => SalesProvider()), // Added SalesProvider
+        ChangeNotifierProvider(create: (_) => SalesProvider()),
+        ChangeNotifierProvider(create: (_) => CustomerProvider()), // Added CustomerProvider
         // TODO: Add other providers for features here (Example: ThemeNotifier if used)
         // ChangeNotifierProvider(create: (_) => ThemeNotifier()),
       ],
@@ -131,7 +135,16 @@ class PlaceholderScreen extends StatelessWidget {
               child: const Text('Create New Sales Invoice'),
             ),
             const SizedBox(height: 10),
-            const Text('Next step: Testing Sales Invoicing.'),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).push(MaterialPageRoute(
+                  builder: (ctx) => const CustomersScreen(),
+                ));
+              },
+              child: const Text('Manage Customers'),
+            ),
+            const SizedBox(height: 10),
+            const Text('Next step: Supplier Management.'),
           ],
         ),
       ),

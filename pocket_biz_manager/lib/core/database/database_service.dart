@@ -567,4 +567,60 @@ class DatabaseService {
       whereArgs: [invoiceID],
     );
   }
+
+  // Customer Table CRUD Methods
+  Future<int> insertCustomer(Map<String, dynamic> row) async {
+    Database db = await instance.database;
+    return await db.insert('Customers', row);
+  }
+
+  Future<List<Map<String, dynamic>>> getAllCustomers() async {
+    Database db = await instance.database;
+    return await db.query('Customers', orderBy: 'CustomerName ASC');
+  }
+
+  Future<Map<String, dynamic>?> getCustomerById(int id) async {
+    Database db = await instance.database;
+    List<Map<String, dynamic>> maps = await db.query(
+      'Customers',
+      where: 'CustomerID = ?',
+      whereArgs: [id],
+    );
+    if (maps.isNotEmpty) {
+      return maps.first;
+    }
+    return null;
+  }
+
+  Future<int> updateCustomer(Map<String, dynamic> row) async {
+    Database db = await instance.database;
+    int id = row['CustomerID'];
+    return await db.update(
+      'Customers',
+      row,
+      where: 'CustomerID = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<int> deleteCustomer(int id) async {
+    Database db = await instance.database;
+    // TODO: Before deleting a customer, check if they are linked to any Sales_Invoices or other transactions.
+    // If so, prevent deletion or implement a soft delete (e.g., IsActive flag in Customers table).
+    return await db.delete(
+      'Customers',
+      where: 'CustomerID = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<int> updateCustomerBalance(int customerId, double newBalance) async {
+    Database db = await instance.database;
+    return await db.update(
+      'Customers',
+      {'Balance': newBalance},
+      where: 'CustomerID = ?',
+      whereArgs: [customerId],
+    );
+  }
 }
