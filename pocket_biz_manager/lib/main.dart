@@ -15,8 +15,10 @@ import 'features/collection_agencies/screens/collection_agencies_screen.dart';
 import 'features/sales/screens/add_edit_sales_invoice_screen.dart';
 import 'features/customers/screens/customers_screen.dart';
 import 'features/customers/providers/customer_provider.dart';
-import 'features/suppliers/screens/suppliers_screen.dart'; // Added import for SuppliersScreen
-import 'features/suppliers/providers/supplier_provider.dart'; // Added import for SupplierProvider
+import 'features/suppliers/screens/suppliers_screen.dart';
+import 'features/suppliers/providers/supplier_provider.dart';
+import 'features/settings/screens/general_settings_screen.dart'; // Added import for SettingsScreen
+import 'features/settings/providers/settings_provider.dart'; // Added import for SettingsProvider
 
 
 // Import other providers and screens later // This line can be removed
@@ -46,9 +48,14 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => PaymentMethodProvider()),
         ChangeNotifierProvider(create: (_) => ProductProvider()),
         ChangeNotifierProvider(create: (_) => CollectionAgencyProvider()),
-        ChangeNotifierProvider(create: (_) => SalesProvider()),
+        ChangeNotifierProxyProvider<SettingsProvider, SalesProvider>( // SalesProvider now depends on SettingsProvider
+          create: (context) => SalesProvider(Provider.of<SettingsProvider>(context, listen: false)),
+          update: (context, settingsProvider, previousSalesProvider) =>
+              SalesProvider(settingsProvider), // Or update previousSalesProvider if needed
+        ),
         ChangeNotifierProvider(create: (_) => CustomerProvider()),
-        ChangeNotifierProvider(create: (_) => SupplierProvider()), // Added SupplierProvider
+        ChangeNotifierProvider(create: (_) => SupplierProvider()),
+        ChangeNotifierProvider(create: (_) => SettingsProvider()),
         // TODO: Add other providers for features here (Example: ThemeNotifier if used)
         // ChangeNotifierProvider(create: (_) => ThemeNotifier()),
       ],
@@ -156,7 +163,16 @@ class PlaceholderScreen extends StatelessWidget {
               child: const Text('Manage Suppliers'),
             ),
             const SizedBox(height: 10),
-            const Text('Next step: Complete Sales Module.'),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).push(MaterialPageRoute(
+                  builder: (ctx) => const GeneralSettingsScreen(),
+                ));
+              },
+              child: const Text('General Settings'),
+            ),
+            const SizedBox(height: 10),
+            const Text('Next step: Update SalesProvider for Invoice Numbering.'),
           ],
         ),
       ),

@@ -44,17 +44,27 @@ class DatabaseService {
 
     await db.execute('''
       CREATE TABLE Company_Settings (
-        SettingID INTEGER PRIMARY KEY AUTOINCREMENT, -- Should only have one row
+        SettingID INTEGER PRIMARY KEY, -- Should only have one row, ID can be fixed e.g. 1
         CompanyName TEXT,
         Address TEXT,
         Phone TEXT,
         Email TEXT,
         CurrencySymbol TEXT DEFAULT 'NAD',
-        LogoURL TEXT
+        LogoURL TEXT,
+        InvoicePrefix TEXT,
+        LastInvoiceSequence INTEGER DEFAULT 0
       )
     ''');
-    // Seed initial company settings (one row)
-    await db.insert('Company_Settings', {'CurrencySymbol': 'NAD'});
+    // Seed initial company settings (one row with ID 1)
+    // Check if settings exist before inserting to avoid conflicts on multiple _onCreate calls (though versioning should prevent that)
+    List<Map> settings = await db.query('Company_Settings', where: 'SettingID = ?', whereArgs: [1]);
+    if (settings.isEmpty) {
+      await db.insert('Company_Settings', {
+        'SettingID': 1,
+        'CurrencySymbol': 'NAD',
+        'LastInvoiceSequence': 0
+      });
+    }
 
 
     await db.execute('''
@@ -679,4 +689,49 @@ class DatabaseService {
       whereArgs: [supplierId],
     );
   }
+
+  // CompanySettings Table Methods
+  Future<Map<String, dynamic>?> getCompanySettings() async {
+    Database db = await instance.database;
+    // Assuming settings ID is always 1
+    List<Map<String, dynamic>> maps = await db.query(
+      'Company_Settings',
+      where: 'SettingID = ?',
+      whereArgs: [1],
+    );
+    if (maps.isNotEmpty) {
+      return maps.first;
+    }
+    // If no settings found (e.g., first run after schema change before seeding or error),
+    // return a default map or handle this state in the provider.
+    // For now, returning null if not found, but seeding in _onCreate should prevent this for ID 1.
+    return null;
+  }
+
+  Future<int> updateCompanySettings(Map<String, dynamic> row) async {
+    Database db = await instance.database;
+    // Ensure SettingID is part of the row map, and it's 1
+    if (!row.containsKey('SettingID') || row['SettingID'] != 1) {
+      row['SettingID'] = 1; // Force ID to 1 for the single settings row
+    }
+    return await db.update(
+      'Company_Settings',
+      row,
+      where: 'SettingID = ?',
+      whereArgs: [1], // Always update the row with SettingID = 1
+      conflictAlgorithm: ConflictAlgorithm.replace, // Or use insert if not exists logic
+    );
+  }
+
+  // Convenience method to update only invoice prefix and sequence
+  Future<int> updateInvoiceSequenceSettings(String? prefix, int sequence) async {
+    Database db = await instance.database;
+    return await db.update(
+      'Company_Settings',
+      {'InvoicePrefix': prefix, 'LastInvoiceSequence': sequence},
+      where: 'SettingID = ?',
+      whereArgs: [1],
+    );
+  }
+
 }
