@@ -13,8 +13,10 @@ import 'features/payment_methods/screens/payment_methods_screen.dart';
 import 'features/products/screens/products_screen.dart';
 import 'features/collection_agencies/screens/collection_agencies_screen.dart';
 import 'features/sales/screens/add_edit_sales_invoice_screen.dart';
-import 'features/customers/screens/customers_screen.dart'; // Added import for CustomersScreen
-import 'features/customers/providers/customer_provider.dart'; // Added import for CustomerProvider (already in providers list, but good for explicitness if needed elsewhere)
+import 'features/customers/screens/customers_screen.dart';
+import 'features/customers/providers/customer_provider.dart';
+import 'features/suppliers/screens/suppliers_screen.dart'; // Added import for SuppliersScreen
+import 'features/suppliers/providers/supplier_provider.dart'; // Added import for SupplierProvider
 
 
 // Import other providers and screens later // This line can be removed
@@ -45,7 +47,8 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ProductProvider()),
         ChangeNotifierProvider(create: (_) => CollectionAgencyProvider()),
         ChangeNotifierProvider(create: (_) => SalesProvider()),
-        ChangeNotifierProvider(create: (_) => CustomerProvider()), // Added CustomerProvider
+        ChangeNotifierProvider(create: (_) => CustomerProvider()),
+        ChangeNotifierProvider(create: (_) => SupplierProvider()), // Added SupplierProvider
         // TODO: Add other providers for features here (Example: ThemeNotifier if used)
         // ChangeNotifierProvider(create: (_) => ThemeNotifier()),
       ],
@@ -144,7 +147,16 @@ class PlaceholderScreen extends StatelessWidget {
               child: const Text('Manage Customers'),
             ),
             const SizedBox(height: 10),
-            const Text('Next step: Supplier Management.'),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).push(MaterialPageRoute(
+                  builder: (ctx) => const SuppliersScreen(),
+                ));
+              },
+              child: const Text('Manage Suppliers'),
+            ),
+            const SizedBox(height: 10),
+            const Text('Next step: Complete Sales Module.'),
           ],
         ),
       ),
