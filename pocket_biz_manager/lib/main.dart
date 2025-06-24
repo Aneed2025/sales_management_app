@@ -11,6 +11,8 @@ import 'features/products/providers/product_provider.dart';
 import 'features/categories/screens/categories_screen.dart';
 import 'features/payment_methods/screens/payment_methods_screen.dart';
 import 'features/products/screens/products_screen.dart';
+import 'features/collection_agencies/screens/collection_agencies_screen.dart';
+import 'features/sales/screens/add_edit_sales_invoice_screen.dart'; // Added import
 
 // Import other providers and screens later // This line can be removed
 
@@ -38,6 +40,8 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => CategoryProvider()),
         ChangeNotifierProvider(create: (_) => PaymentMethodProvider()),
         ChangeNotifierProvider(create: (_) => ProductProvider()),
+        ChangeNotifierProvider(create: (_) => CollectionAgencyProvider()),
+        ChangeNotifierProvider(create: (_) => SalesProvider()), // Added SalesProvider
         // TODO: Add other providers for features here (Example: ThemeNotifier if used)
         // ChangeNotifierProvider(create: (_) => ThemeNotifier()),
       ],
@@ -100,7 +104,34 @@ class PlaceholderScreen extends StatelessWidget {
               child: const Text('Manage Products'),
             ),
             const SizedBox(height: 10),
-            const Text('Next step: Testing implemented units.'),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).push(MaterialPageRoute(
+                  builder: (ctx) => const CollectionAgenciesScreen(),
+                ));
+              },
+              child: const Text('Manage Collection Agencies'),
+            ),
+            const SizedBox(height: 10),
+             ElevatedButton(
+              onPressed: () {
+                // TODO: For a real app, ensure CustomerProvider is initialized and has data
+                // For now, we'll assume it's handled or we'll add dummy data for testing.
+                // It's better to have a proper CustomerProvider.
+                // For testing without a full CustomerProvider, one might pass dummy data or allow
+                // manual customer ID entry in AddEditSalesInvoiceScreen for now.
+                // For this example, we'll just navigate.
+                // Ensure CustomerProvider is provided in MultiProvider if AddEditSalesInvoiceScreen depends on it.
+                // We need to create a basic CustomerProvider and Customer model for this to work.
+                // Let's assume they will be created.
+                Navigator.of(context).push(MaterialPageRoute(
+                  builder: (ctx) => const AddEditSalesInvoiceScreen(),
+                ));
+              },
+              child: const Text('Create New Sales Invoice'),
+            ),
+            const SizedBox(height: 10),
+            const Text('Next step: Testing Sales Invoicing.'),
           ],
         ),
       ),
