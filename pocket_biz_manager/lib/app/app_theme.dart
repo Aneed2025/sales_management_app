@@ -52,7 +52,7 @@ class AppTheme {
         floatingLabelStyle: TextStyle(color: Colors.blueGrey[700]),
         hintStyle: TextStyle(color: Colors.grey[500]),
       ),
-      cardTheme: CardTheme(
+    cardTheme: CardThemeData( // Changed CardTheme to CardThemeData
         elevation: 1.0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8.0),

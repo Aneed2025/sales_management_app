@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/category_provider.dart';
-import '../models/category_model.dart';
+import '../models/category_model.dart' as model; // Ensure prefix is used for model
 import 'add_edit_category_screen.dart';
-import '../widgets/category_list_item.dart'; // Will create this widget
+import '../widgets/category_list_item.dart';
 
 class CategoriesScreen extends StatefulWidget {
   const CategoriesScreen({super.key});
 
-  static const routeName = '/categories'; // For navigation
+  static const routeName = '/categories';
 
   @override
   State<CategoriesScreen> createState() => _CategoriesScreenState();
@@ -21,10 +21,13 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
     // Fetch categories when the screen is initialized if not already loaded
     // Provider might fetch in its constructor, so this could be redundant
     // but good for a pull-to-refresh scenario later.
-    // Future.microtask(() => Provider.of<CategoryProvider>(context, listen: false).fetchCategories());
+    // Or if coming back to the screen and wanting fresh data.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<CategoryProvider>(context, listen: false).fetchCategories();
+    });
   }
 
-  void _navigateToAddEditScreen(BuildContext context, {Category? category}) {
+  void _navigateToAddEditScreen(BuildContext context, {model.Category? category}) {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (ctx) => AddEditCategoryScreen(category: category),
@@ -32,7 +35,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
     );
   }
 
-  Future<void> _confirmDelete(BuildContext context, CategoryProvider provider, Category category) async {
+  Future<void> _confirmDelete(BuildContext context, CategoryProvider provider, model.Category category) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -54,7 +57,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
 
     if (confirmed == true) {
       final success = await provider.deleteCategory(category.categoryID!);
-      if (!mounted) return; // Check mounted before using context
+      if (!mounted) return;
 
       final scaffoldMessenger = ScaffoldMessenger.of(context);
       final theme = Theme.of(context);
@@ -71,9 +74,8 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
           SnackBar(
             content: Text('Category "${category.categoryName}" deleted.'),
             backgroundColor: Colors.green,
-            ),
-          );
-        }
+          ),
+        );
       }
     }
   }
@@ -112,7 +114,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
               itemBuilder: (lCtx, index) {
                 final category = categoryProvider.categories[index];
                 return CategoryListItem(
-                  category: category,
+                  category: category, // This now expects model.Category
                   onTap: () => _navigateToAddEditScreen(context, category: category),
                   onDelete: () => _confirmDelete(context, categoryProvider, category),
                 );
@@ -129,3 +131,4 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
     );
   }
 }
+// Ensuring no trailing characters or lines after this closing brace.
