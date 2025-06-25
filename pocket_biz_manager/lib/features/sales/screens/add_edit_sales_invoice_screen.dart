@@ -27,7 +27,12 @@ class _AddEditSalesInvoiceScreenState extends State<AddEditSalesInvoiceScreen> {
 
   // Invoice Header Controllers
   DateTime _invoiceDate = DateTime.now();
-  Customer? _selectedCustomer; // To be fetched or selected
+  Customer? _selectedCustomer;
+  final TextEditingController _customerSearchController = TextEditingController();
+  List<Customer> _customerSearchResults = [];
+  bool _showCustomerSearchResults = false;
+  final FocusNode _customerSearchFocusNode = FocusNode();
+
   final TextEditingController _notesController = TextEditingController();
 
   // Items
@@ -72,6 +77,8 @@ class _AddEditSalesInvoiceScreenState extends State<AddEditSalesInvoiceScreen> {
     for (var controller in _customInstallmentAmountControllers) {
       controller.dispose();
     }
+    _customerSearchController.dispose();
+    _customerSearchFocusNode.dispose();
     super.dispose();
   }
 
@@ -316,24 +323,29 @@ class _AddEditSalesInvoiceScreenState extends State<AddEditSalesInvoiceScreen> {
                           children: [
                             const Text("Invoice Details", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                             const SizedBox(height: 10),
-                            // Customer Selection Dropdown
-                            DropdownButtonFormField<Customer>(
-                              value: _selectedCustomer,
-                              decoration: const InputDecoration(labelText: 'Customer*', border: OutlineInputBorder()),
-                              items: customerProvider.customers.map((Customer customer) {
-                                return DropdownMenuItem<Customer>(
-                                  value: customer,
-                                  child: Text(customer.customerName),
-                                );
-                              }).toList(),
-                              onChanged: (Customer? newValue) {
-                                setState(() {
-                                  _selectedCustomer = newValue;
-                                });
-                              },
-                              validator: (value) => value == null ? 'Please select a customer' : null,
-                              hint: customerProvider.isLoading ? const Text("Loading...") : const Text("Select Customer"),
-                            ),
+                            // Customer Search and Selection
+                            _buildCustomerSearchField(customerProvider),
+                            if (_selectedCustomer != null)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8.0, left: 4.0),
+                                child: Chip(
+                                  label: Text(_selectedCustomer!.customerName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                  avatar: CircleAvatar(child: Text(_selectedCustomer!.customerName[0])),
+                                  onDeleted: () {
+                                    setState(() {
+                                      _selectedCustomer = null;
+                                      _customerSearchController.clear();
+                                      _customerSearchResults = [];
+                                      _showCustomerSearchResults = false;
+                                    });
+                                  },
+                                ),
+                              ),
+                            if (_selectedCustomer == null && _customerSearchController.text.isNotEmpty && !_showCustomerSearchResults && !_isLoading)
+                                Padding(
+                                  padding: const EdgeInsets.only(top:8.0),
+                                  child: Text('No customer selected. Search or add new.', style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                                ),
                             const SizedBox(height: 12),
                             ListTile(
                               title: Text('Invoice Date: ${DateFormat.yMMMd().format(_invoiceDate)}'),

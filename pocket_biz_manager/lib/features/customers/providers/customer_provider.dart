@@ -42,8 +42,9 @@ class CustomerProvider with ChangeNotifier {
     _setLoading(false);
   }
 
-  Future<bool> addCustomer(Customer customer) async {
+  Future<Customer?> addCustomer(Customer customer) async { // Return Customer?
     _setLoading(true);
+    Customer? newCustomerWithId;
     try {
       // Optional: Check for duplicates by name or phone (case-insensitive)
       bool nameExists = _customers.any((c) => c.customerName.toLowerCase() == customer.customerName.trim().toLowerCase());
@@ -65,18 +66,18 @@ class CustomerProvider with ChangeNotifier {
       final id = await _dbService.insertCustomer(customer.toMap());
       if (id > 0) {
         final newCustomer = customer.copyWith(customerID: id);
-        _customers.add(newCustomer);
+        newCustomerWithId = customer.copyWith(customerID: id);
+        _customers.add(newCustomerWithId);
         _customers.sort((a, b) => a.customerName.toLowerCase().compareTo(b.customerName.toLowerCase()));
         notifyListeners();
-        _setLoading(false);
-        return true;
       }
     } catch (e) {
       debugPrint("Error adding customer: $e");
       _setError("Failed to add customer.");
+      newCustomerWithId = null; // Ensure null on error
     }
     _setLoading(false);
-    return false;
+    return newCustomerWithId; // Return the customer object or null
   }
 
   Future<bool> updateCustomer(Customer customer) async {
