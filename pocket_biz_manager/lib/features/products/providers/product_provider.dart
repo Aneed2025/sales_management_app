@@ -178,4 +178,80 @@ class ProductProvider with ChangeNotifier {
     _setLoading(false);
     return false;
   }
+
+  Future<bool> sellProduct(int productId, double quantitySold, int relatedDocumentId, String relatedDocumentType, {DatabaseExecutor? txn}) async {
+    // This operation should ideally be atomic, ensured by the calling transaction (txn)
+    _setLoading(true); // Provider loading state, might not be needed if part of larger operation
+    try {
+      final db = txn ?? await _dbService.database;
+
+      // 1. Get current product to find current stock
+      // Using raw query with txn if available
+      final List<Map<String, dynamic>> productMaps = await db.query(
+        'Products',
+        columns: ['CurrentStock', 'ProductName'],
+        where: 'ProductID = ?',
+        whereArgs: [productId],
+      );
+
+      if (productMaps.isEmpty) {
+        _setError("Product with ID $productId not found for stock update.");
+        _setLoading(false);
+        return false;
+      }
+
+      final currentStock = (productMaps.first['CurrentStock'] as num?)?.toDouble() ?? 0.0;
+      // final productName = productMaps.first['ProductName'] as String? ?? 'Unknown Product'; // Needed if not passed
+
+      if (currentStock < quantitySold) {
+        _setError("Not enough stock for product ID $productId. Available: $currentStock, Requested: $quantitySold");
+        // Note: In a real app, this check might happen before even starting the invoice save.
+        _setLoading(false);
+        return false;
+      }
+
+      final newStock = currentStock - quantitySold;
+
+      // 2. Update product stock in Products table
+      int updatedRows = await db.update(
+        'Products',
+        {'CurrentStock': newStock},
+        where: 'ProductID = ?',
+        whereArgs: [productId],
+      );
+
+      if (updatedRows > 0) {
+        // 3. Insert inventory movement record
+        Map<String, dynamic> movement = {
+          'ProductID': productId,
+          'MovementType': relatedDocumentType, // e.g., "Sale"
+          'QuantityChange': -quantitySold, // Negative for sale
+          'MovementDate': DateTime.now().toIso8601String(),
+          'RelatedDocumentType': relatedDocumentType, // e.g., "SalesInvoice"
+          'RelatedDocumentID': relatedDocumentId,
+          'StockAfterMovement': newStock,
+          // 'CreatedByUserID': null, // TODO: Add user ID if available
+        };
+        await _dbService.insertInventoryMovement(movement, txn: db as Database); // Pass the db instance as txn
+
+        // Update local cache in ProductProvider
+        final index = _products.indexWhere((p) => p.productID == productId);
+        if (index != -1) {
+          _products[index] = _products[index].copyWith(currentStock: newStock);
+          notifyListeners();
+        }
+        _setLoading(false);
+        return true;
+      } else {
+        _setError("Failed to update stock for product ID $productId.");
+        _setLoading(false);
+        return false;
+      }
+    } catch (e) {
+      debugPrint("Error in sellProduct for $productId: $e");
+      _setError("An error occurred while updating stock for product ID $productId.");
+      _setLoading(false);
+      return false;
+    }
+  }
 }

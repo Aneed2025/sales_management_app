@@ -45,8 +45,16 @@ class SalesProvider with ChangeNotifier {
   String? get errorMessage => _errorMessage;
 
   final SettingsProvider _settingsProvider;
+  final ProductProvider _productProvider;
+  final CustomerProvider _customerProvider;
 
-  SalesProvider(this._settingsProvider) {
+  SalesProvider({
+    required SettingsProvider settingsProvider,
+    required ProductProvider productProvider,
+    required CustomerProvider customerProvider,
+  })  : _settingsProvider = settingsProvider,
+        _productProvider = productProvider,
+        _customerProvider = customerProvider {
     // Initial fetch of invoices can be done here if needed
     // fetchInvoices();
   }
@@ -204,13 +212,40 @@ class SalesProvider with ChangeNotifier {
         }
 
 
-        // 2. Insert Sales_Invoice_Items
+        // 2. Insert Sales_Invoice_Items and Update Product Stock
         for (var item in items) {
+          if (item.productID == null) {
+            // This case should ideally be prevented by UI validation
+            throw Exception("Product ID is null for item: ${item.productName}. Cannot process sale.");
+          }
           await txn.insert('Sales_Invoice_Items', item.toMap(invoiceId));
-          // TODO: Decrement product stock (ProductProvider.updateStock(item.productID, newStock))
+
+          // Update product stock and add inventory movement
+          bool stockUpdated = await _productProvider.sellProduct(
+            item.productID!,
+            item.quantity,
+            invoiceId,
+            "SalesInvoice", // relatedDocumentType
+            txn: txn
+          );
+          if (!stockUpdated) {
+            // If stock update fails (e.g., insufficient stock detected inside sellProduct if not checked before),
+            // the transaction will be rolled back by throwing an exception.
+            throw Exception("Failed to update stock for product: ${item.productName}. ${_productProvider.errorMessage ?? ''}");
+          }
         }
 
-        // 3. Insert Invoice_Installments if applicable
+        // 3. Update Customer Balance
+        bool balanceUpdated = await _customerProvider.updateCustomerBalance(
+          customerId,
+          totalAmount, // Customer owes this amount
+          txn: txn
+        );
+        if (!balanceUpdated) {
+          throw Exception("Failed to update customer balance. ${_customerProvider.errorMessage ?? ''}");
+        }
+
+        // 4. Insert Invoice_Installments if applicable
         if (newInvoice.isInstallment) {
           List<InvoiceInstallment> generatedInstallments = [];
           double remainingAmount = newInvoice.totalAmount;

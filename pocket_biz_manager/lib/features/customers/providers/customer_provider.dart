@@ -169,6 +169,53 @@ class CustomerProvider with ChangeNotifier {
     return false;
   }
 
+  // changeInBalance is positive if customer owes more (e.g. new sale), negative if customer pays
+  Future<bool> updateCustomerBalance(int customerId, double changeInBalance, {DatabaseExecutor? txn}) async {
+    _setLoading(true);
+    try {
+      final db = txn ?? await _dbService.database;
+
+      // Get current balance first
+      final List<Map<String, dynamic>> customerMaps = await db.query(
+        'Customers',
+        columns: ['Balance'],
+        where: 'CustomerID = ?',
+        whereArgs: [customerId],
+      );
+
+      if (customerMaps.isEmpty) {
+        _setError("Customer with ID $customerId not found for balance update.");
+        _setLoading(false);
+        return false;
+      }
+
+      final currentBalance = (customerMaps.first['Balance'] as num?)?.toDouble() ?? 0.0;
+      final newBalance = currentBalance + changeInBalance;
+
+      int result = await db.update( // Use the acquired db (which could be txn)
+        'Customers',
+        {'Balance': newBalance},
+        where: 'CustomerID = ?',
+        whereArgs: [customerId],
+      );
+
+      if (result > 0) {
+        final index = _customers.indexWhere((c) => c.customerID == customerId);
+        if (index != -1) {
+          _customers[index] = _customers[index].copyWith(balance: newBalance);
+          notifyListeners();
+        }
+        _setLoading(false);
+        return true;
+      }
+    } catch (e) {
+      debugPrint("Error updating customer balance for $customerId: $e");
+      _setError("Failed to update customer balance for ID $customerId.");
+    }
+    _setLoading(false);
+    return false;
+  }
+
 
   Customer? getCustomerById(int id) {
     try {
