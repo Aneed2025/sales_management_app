@@ -120,4 +120,37 @@ class SettingsProvider with ChangeNotifier {
     _setLoading(false);
     return false;
   }
+
+  // Called by SalesProvider to update the local cache after DB has been updated in a transaction
+  void updateLocalLastInvoiceSequence(int newSequence, String? currentUsedPrefix) {
+    if (_currentSettings != null) {
+      // Check if the prefix used for the invoice matches the currently stored prefix.
+      // If not, it implies a default prefix was used by SalesProvider because settings prefix was null/empty.
+      // In such a case, we might not want to update the stored prefix in settings with the default one,
+      // but we definitely want to update the sequence number that was used.
+      // For now, we'll update both if the currentUsedPrefix is not null.
+      // The main goal is to update lastInvoiceSequence.
+      _currentSettings = _currentSettings!.copyWith(
+        lastInvoiceSequence: newSequence,
+        // Only update prefix in cache if the one used is different AND not null
+        // This logic can be tricky: if "INV" was used as default, do we store "INV" as the new prefix?
+        // Let's assume SalesProvider's _generateNextInvoiceNumber now gets prefix from settings,
+        // and if settings prefix is null/empty, it uses a default but doesn't try to save that default back.
+        // So, we only update the sequence here. The prefix in settings remains what user set.
+        // invoicePrefix: (currentUsedPrefix != null && currentUsedPrefix != _currentSettings!.invoicePrefix) ? currentUsedPrefix : _currentSettings!.invoicePrefix,
+      );
+      // We notify listeners because the settings screen might be showing the last sequence number.
+      notifyListeners();
+    } else {
+      // This case is less likely if loadSettings is called on provider init, but good to be aware.
+      debugPrint("SettingsProvider: _currentSettings is null, cannot update local lastInvoiceSequence cache.");
+      // Optionally, fetch settings again and then try to update.
+      // loadSettings().then((_) {
+      //   if(_currentSettings != null) {
+      //     _currentSettings = _currentSettings!.copyWith(lastInvoiceSequence: newSequence);
+      //     notifyListeners();
+      //   }
+      // });
+    }
+  }
 }

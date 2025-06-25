@@ -10,7 +10,7 @@ class CustomerProvider with ChangeNotifier {
   String? _errorMessage;
 
   List<Customer> get customers => _customers;
-  List<Customer> get activeCustomers => _customers.where((c) => true).toList(); // Assuming no IsActive field in Customer model yet, or filter if added
+  List<Customer> get activeCustomers => _customers.where((c) => true).toList(); // Placeholder
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
@@ -42,79 +42,107 @@ class CustomerProvider with ChangeNotifier {
     _setLoading(false);
   }
 
-  Future<Customer?> addCustomer(Customer customer) async { // Return Customer?
+  Future<Customer?> addCustomer(Customer customer) async {
     _setLoading(true);
     Customer? newCustomerWithId;
     try {
-      // Optional: Check for duplicates by name or phone (case-insensitive)
-      bool nameExists = _customers.any((c) => c.customerName.toLowerCase() == customer.customerName.trim().toLowerCase());
-      if (nameExists) {
-        _setError("Customer with name '${customer.customerName.trim()}' already exists.");
+      // Trim inputs
+      final trimmedName = customer.customerName.trim();
+      final trimmedPhone = customer.phone?.trim();
+
+      // Check for duplicates by name (case-insensitive)
+      if (_customers.any((c) => c.customerName.toLowerCase() == trimmedName.toLowerCase())) {
+        _setError("Customer with name '$trimmedName' already exists.");
         _setLoading(false);
-        return false;
+        return null;
       }
-      if (customer.phone != null && customer.phone!.trim().isNotEmpty) {
-        bool phoneExists = _customers.any((c) => c.phone == customer.phone!.trim());
-        if (phoneExists) {
-          _setError("Customer with phone number '${customer.phone!.trim()}' already exists.");
+      // Check for duplicates by phone if phone is not empty
+      if (trimmedPhone != null && trimmedPhone.isNotEmpty) {
+        if (_customers.any((c) => c.phone == trimmedPhone)) {
+          _setError("Customer with phone number '$trimmedPhone' already exists.");
           _setLoading(false);
-          return false;
+          return null;
         }
       }
 
+      // Prepare customer data for insertion (using trimmed values)
+      final customerToInsert = customer.copyWith(
+        customerName: trimmedName,
+        phone: trimmedPhone,
+        // ensure other fields are also trimmed if necessary, e.g. email, idNumber
+        email: customer.email?.trim().isEmpty == true ? null : customer.email?.trim(),
+        idNumber: customer.idNumber?.trim().isEmpty == true ? null : customer.idNumber?.trim(),
+        workPlace: customer.workPlace?.trim().isEmpty == true ? null : customer.workPlace?.trim(),
+        address: customer.address?.trim().isEmpty == true ? null : customer.address?.trim(),
+      );
 
-      final id = await _dbService.insertCustomer(customer.toMap());
+      final id = await _dbService.insertCustomer(customerToInsert.toMap());
       if (id > 0) {
-        final newCustomer = customer.copyWith(customerID: id);
-        newCustomerWithId = customer.copyWith(customerID: id);
+        newCustomerWithId = customerToInsert.copyWith(customerID: id);
         _customers.add(newCustomerWithId);
         _customers.sort((a, b) => a.customerName.toLowerCase().compareTo(b.customerName.toLowerCase()));
         notifyListeners();
+      } else {
+        _setError("Failed to add customer to the database. No ID returned.");
+        newCustomerWithId = null;
       }
     } catch (e) {
       debugPrint("Error adding customer: $e");
-      _setError("Failed to add customer.");
-      newCustomerWithId = null; // Ensure null on error
+      _setError("Failed to add customer due to an exception: $e");
+      newCustomerWithId = null;
     }
     _setLoading(false);
-    return newCustomerWithId; // Return the customer object or null
+    return newCustomerWithId;
   }
 
   Future<bool> updateCustomer(Customer customer) async {
     _setLoading(true);
     try {
-      // Optional: Check for duplicates by name or phone (case-insensitive, excluding itself)
+      final trimmedName = customer.customerName.trim();
+      final trimmedPhone = customer.phone?.trim();
+
       bool nameExists = _customers.any((c) =>
-          c.customerName.toLowerCase() == customer.customerName.trim().toLowerCase() &&
+          c.customerName.toLowerCase() == trimmedName.toLowerCase() &&
           c.customerID != customer.customerID);
       if (nameExists) {
-        _setError("Another customer with name '${customer.customerName.trim()}' already exists.");
+        _setError("Another customer with name '$trimmedName' already exists.");
         _setLoading(false);
         return false;
       }
-       if (customer.phone != null && customer.phone!.trim().isNotEmpty) {
-        bool phoneExists = _customers.any((c) => c.phone == customer.phone!.trim() && c.customerID != customer.customerID);
+       if (trimmedPhone != null && trimmedPhone.isNotEmpty) {
+        bool phoneExists = _customers.any((c) => c.phone == trimmedPhone && c.customerID != customer.customerID);
         if (phoneExists) {
-          _setError("Another customer with phone number '${customer.phone!.trim()}' already exists.");
+          _setError("Another customer with phone number '$trimmedPhone' already exists.");
           _setLoading(false);
           return false;
         }
       }
 
-      final rowsAffected = await _dbService.updateCustomer(customer.toMap());
+      final customerToUpdate = customer.copyWith(
+        customerName: trimmedName,
+        phone: trimmedPhone,
+        email: customer.email?.trim().isEmpty == true ? null : customer.email?.trim(),
+        idNumber: customer.idNumber?.trim().isEmpty == true ? null : customer.idNumber?.trim(),
+        workPlace: customer.workPlace?.trim().isEmpty == true ? null : customer.workPlace?.trim(),
+        address: customer.address?.trim().isEmpty == true ? null : customer.address?.trim(),
+      );
+
+
+      final rowsAffected = await _dbService.updateCustomer(customerToUpdate.toMap());
       if (rowsAffected > 0) {
-        final index = _customers.indexWhere((c) => c.customerID == customer.customerID);
+        final index = _customers.indexWhere((c) => c.customerID == customerToUpdate.customerID);
         if (index != -1) {
-          _customers[index] = customer;
+          _customers[index] = customerToUpdate;
           _customers.sort((a, b) => a.customerName.toLowerCase().compareTo(b.customerName.toLowerCase()));
           notifyListeners();
         }
         _setLoading(false);
         return true;
       }
+       _setError("Failed to update customer in database.");
     } catch (e) {
       debugPrint("Error updating customer: $e");
-      _setError("Failed to update customer.");
+      _setError("Failed to update customer due to an exception: $e");
     }
     _setLoading(false);
     return false;
@@ -122,7 +150,6 @@ class CustomerProvider with ChangeNotifier {
 
   Future<bool> deleteCustomer(int customerId) async {
     _setLoading(true);
-    // IMPORTANT: Check if customer is linked to any Sales_Invoices before deleting
     try {
       final rowsAffected = await _dbService.deleteCustomer(customerId);
       if (rowsAffected > 0) {
@@ -131,51 +158,20 @@ class CustomerProvider with ChangeNotifier {
         _setLoading(false);
         return true;
       }
+      _setError("Failed to delete customer from database.");
     } catch (e) {
       debugPrint("Error deleting customer: $e");
-      _setError("Failed to delete customer. They might have existing invoices.");
+      _setError("Failed to delete customer. They might have existing invoices or an error occurred.");
     }
     _setLoading(false);
     return false;
   }
 
-  Future<bool> updateCustomerBalance(int customerId, double changeInBalance) async {
-    // This method might be more complex: fetch customer, update balance, save.
-    // Or DatabaseService.updateCustomerBalance could adjust directly.
-    // For now, let's assume DatabaseService.updateCustomerBalance updates the balance by setting a new value.
-    // We need to fetch the current balance first.
-    _setLoading(true);
-    try {
-      final customerMap = await _dbService.getCustomerById(customerId);
-      if (customerMap != null) {
-        Customer customer = Customer.fromMap(customerMap);
-        double newBalance = customer.balance + changeInBalance;
-        int  result = await _dbService.updateCustomerBalance(customerId, newBalance);
-        if(result > 0){
-            final index = _customers.indexWhere((c) => c.customerID == customerId);
-            if (index != -1) {
-                _customers[index] = _customers[index].copyWith(balance: newBalance);
-                notifyListeners();
-            }
-             _setLoading(false);
-            return true;
-        }
-      }
-    } catch (e) {
-      debugPrint("Error updating customer balance: $e");
-      _setError("Failed to update customer balance.");
-    }
-    _setLoading(false);
-    return false;
-  }
-
-  // changeInBalance is positive if customer owes more (e.g. new sale), negative if customer pays
   Future<bool> updateCustomerBalance(int customerId, double changeInBalance, {DatabaseExecutor? txn}) async {
-    _setLoading(true);
+    _setLoading(true); // Consider if this loading state is appropriate for potentially background operations
     try {
       final db = txn ?? await _dbService.database;
 
-      // Get current balance first
       final List<Map<String, dynamic>> customerMaps = await db.query(
         'Customers',
         columns: ['Balance'],
@@ -185,14 +181,14 @@ class CustomerProvider with ChangeNotifier {
 
       if (customerMaps.isEmpty) {
         _setError("Customer with ID $customerId not found for balance update.");
-        _setLoading(false);
+         if (!isDisposed) _setLoading(false); // Check if provider is disposed
         return false;
       }
 
       final currentBalance = (customerMaps.first['Balance'] as num?)?.toDouble() ?? 0.0;
       final newBalance = currentBalance + changeInBalance;
 
-      int result = await db.update( // Use the acquired db (which could be txn)
+      int result = await db.update(
         'Customers',
         {'Balance': newBalance},
         where: 'CustomerID = ?',
@@ -203,26 +199,31 @@ class CustomerProvider with ChangeNotifier {
         final index = _customers.indexWhere((c) => c.customerID == customerId);
         if (index != -1) {
           _customers[index] = _customers[index].copyWith(balance: newBalance);
-          notifyListeners();
+           if (!isDisposed) notifyListeners();
         }
-        _setLoading(false);
+         if (!isDisposed) _setLoading(false);
         return true;
       }
+       _setError("Failed to update customer balance in DB for ID $customerId.");
     } catch (e) {
       debugPrint("Error updating customer balance for $customerId: $e");
-      _setError("Failed to update customer balance for ID $customerId.");
+      _setError("Failed to update customer balance for ID $customerId due to an exception.");
     }
-    _setLoading(false);
+     if (!isDisposed) _setLoading(false);
     return false;
   }
 
+  bool _isDisposed = false;
+  @override
+  void dispose() {
+    _isDisposed = true;
+    super.dispose();
+  }
 
   Customer? getCustomerById(int id) {
     try {
       return _customers.firstWhere((customer) => customer.customerID == id);
     } catch (e) {
-      // If not in list, could try fetching from DB, but for now, assume it should be in the list if valid
-      // fetchCustomers(); // This might be too aggressive
       return null;
     }
   }
