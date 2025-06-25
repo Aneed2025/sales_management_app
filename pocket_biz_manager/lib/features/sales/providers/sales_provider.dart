@@ -36,7 +36,7 @@ class SalesInvoiceItem {
 class SalesProvider with ChangeNotifier {
   final DatabaseService _dbService = DatabaseService.instance;
 
-  List<SalesInvoice> _invoices = [];
+  final List<SalesInvoice> _invoices = []; // Made final
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -117,9 +117,8 @@ class SalesProvider with ChangeNotifier {
       where: 'SettingID = ?', // Assuming SettingID is 1
       whereArgs: [1],
     );
-    // Also update in the provider's cache
-    _settingsProvider.currentSettings = _settingsProvider.currentSettings?.copyWith(lastInvoiceSequence: newSequence);
-    // No notifyListeners() for settingsProvider here, as this is an internal update.
+    // After DB update, update the cache in SettingsProvider
+    _settingsProvider.updateLocalLastInvoiceSequence(newSequence, prefix);
   }
 
 
