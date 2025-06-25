@@ -48,10 +48,18 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => PaymentMethodProvider()),
         ChangeNotifierProvider(create: (_) => ProductProvider()),
         ChangeNotifierProvider(create: (_) => CollectionAgencyProvider()),
-        ChangeNotifierProxyProvider<SettingsProvider, SalesProvider>( // SalesProvider now depends on SettingsProvider
-          create: (context) => SalesProvider(Provider.of<SettingsProvider>(context, listen: false)),
-          update: (context, settingsProvider, previousSalesProvider) =>
-              SalesProvider(settingsProvider), // Or update previousSalesProvider if needed
+        ChangeNotifierProxyProvider3<SettingsProvider, ProductProvider, CustomerProvider, SalesProvider>(
+          create: (context) => SalesProvider(
+            settingsProvider: Provider.of<SettingsProvider>(context, listen: false),
+            productProvider: Provider.of<ProductProvider>(context, listen: false),
+            customerProvider: Provider.of<CustomerProvider>(context, listen: false),
+          ),
+          update: (context, settingsProvider, productProvider, customerProvider, previousSalesProvider) =>
+              SalesProvider(
+            settingsProvider: settingsProvider,
+            productProvider: productProvider,
+            customerProvider: customerProvider,
+          ),
         ),
         ChangeNotifierProvider(create: (_) => CustomerProvider()),
         ChangeNotifierProvider(create: (_) => SupplierProvider()),

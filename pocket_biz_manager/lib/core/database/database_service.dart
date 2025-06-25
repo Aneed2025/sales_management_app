@@ -734,4 +734,11 @@ class DatabaseService {
     );
   }
 
+  // InventoryMovement Table Methods
+  Future<int> insertInventoryMovement(Map<String, dynamic> row, {DatabaseExecutor? txn}) async {
+    final db = txn ?? await instance.database;
+    return await db.insert('Inventory_Movements', row);
+  }
+
+  // TODO: Add other CRUD methods for Inventory_Movements if needed (e.g., getMovementsForProduct)
 }
