@@ -1,42 +1,20 @@
 import 'package:flutter/foundation.dart';
+import 'package:sqflite/sqflite.dart';
 import '../../../core/database/database_service.dart';
 import '../models/sales_invoice_model.dart';
 import '../models/invoice_installment_model.dart';
-// import '../../products/models/product_model.dart'; // product_model.dart is not used directly in this file now
-import '../../../core/models/company_settings_model.dart'; // For CompanySettings
-import '../../settings/providers/settings_provider.dart'; // To access settings
+import '../models/sales_invoice_item_model.dart'; // Import the new model
+import '../../../core/models/company_settings_model.dart';
+import '../../settings/providers/settings_provider.dart';
+import '../../products/providers/product_provider.dart';
+import '../../customers/providers/customer_provider.dart';
 
-// Placeholder for SalesInvoiceItem, to be properly defined
-class SalesInvoiceItem {
-  final int? productID;
-  final String productName; // Or fetch from Product model
-  final double quantity;
-  final double unitPrice;
-  final double lineTotal;
-
-  SalesInvoiceItem({
-    this.productID,
-    required this.productName,
-    required this.quantity,
-    required this.unitPrice,
-  }) : lineTotal = quantity * unitPrice;
-
-  Map<String, dynamic> toMap(int invoiceID) {
-    return {
-      'InvoiceID': invoiceID,
-      'ProductID': productID,
-      // 'ProductName': productName, // Not stored in DB table directly, ProductID is FK
-      'Quantity': quantity,
-      'UnitPrice': unitPrice,
-      'LineTotal': lineTotal,
-    };
-  }
-}
+// SalesInvoiceItem class is now defined in sales_invoice_item_model.dart
 
 class SalesProvider with ChangeNotifier {
   final DatabaseService _dbService = DatabaseService.instance;
 
-  final List<SalesInvoice> _invoices = []; // Made final
+  final List<SalesInvoice> _invoices = [];
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -54,10 +32,7 @@ class SalesProvider with ChangeNotifier {
     required CustomerProvider customerProvider,
   })  : _settingsProvider = settingsProvider,
         _productProvider = productProvider,
-        _customerProvider = customerProvider {
-    // Initial fetch of invoices can be done here if needed
-    // fetchInvoices();
-  }
+        _customerProvider = customerProvider;
 
   void _setLoading(bool value) {
     _isLoading = value;
@@ -71,19 +46,12 @@ class SalesProvider with ChangeNotifier {
   }
 
   Future<String> _generateNextInvoiceNumber() async {
-    // This is a simplified version. In a real app, you might query the DB
-    // for the last invoice number and increment it, or use a more robust system.
-    // For example: SELECT MAX(InvoiceNumber) FROM Sales_Invoices and parse it.
-    // Or have a separate table/setting for last used invoice number.
     CompanySettings? settings = _settingsProvider.currentSettings;
     if (settings == null) {
-      // Attempt to load settings if not already loaded. This is a fallback.
-      // Ideally, SettingsProvider should be loaded when the app starts.
       await _settingsProvider.loadSettings();
       settings = _settingsProvider.currentSettings;
       if (settings == null) {
         _setError("Company settings not available. Cannot generate invoice number.");
-        // Return a temporary or error-indicating number, or throw an exception
         return "ERR-NO-SETTINGS-${DateTime.now().millisecondsSinceEpoch}";
       }
     }
@@ -95,44 +63,30 @@ class SalesProvider with ChangeNotifier {
     }
 
     int nextSequence = (settings.lastInvoiceSequence ?? 0) + 1;
-    String sequencePart = nextSequence.toString().padLeft(5, '0'); // 5 digits sequence XXXXX
+    String sequencePart = nextSequence.toString().padLeft(5, '0');
 
     return '${prefix.toUpperCase()}-$sequencePart';
   }
 
-  // To be called within the DB transaction after successfully inserting an invoice
   Future<void> _updateNextInvoiceSequence(String prefix, int newSequence, DatabaseExecutor txn) async {
-    // Note: Using txn (Transaction) if available, otherwise use _dbService.database directly
-    // This specific method might be better in DatabaseService or SettingsProvider
-    // if SettingsProvider also takes DatabaseExecutor for transactions.
-    // For now, direct update via _dbService, assuming it handles its own DB instance.
-    // This is NOT ideal for atomicity with invoice creation if not part of the same transaction.
-    // The best approach is to update settings within the same transaction as invoice creation.
-
-    // This logic should be part of the same transaction as saving the invoice.
-    // We will update Company_Settings table directly using the transaction object 'txn'.
      await txn.update(
       'Company_Settings',
       {'LastInvoiceSequence': newSequence},
-      where: 'SettingID = ?', // Assuming SettingID is 1
+      where: 'SettingID = ?',
       whereArgs: [1],
     );
-    // After DB update, update the cache in SettingsProvider
     _settingsProvider.updateLocalLastInvoiceSequence(newSequence, prefix);
   }
 
-
   Future<SalesInvoice?> createInvoice({
     required int customerId,
-    // required String customerName, // For display if needed
     required DateTime invoiceDate,
-    required List<SalesInvoiceItem> items,
+    required List<SalesInvoiceItem> items, // Now uses the imported SalesInvoiceItem
     String? notes,
     bool isInstallment = false,
     int? numberOfInstallments,
-    DateTime? firstInstallmentDueDate, // Required if isInstallment is true
-    List<double>? customInstallmentAmounts, // Optional, for user-edited installment values
-    // Collection agency fields will be handled during update/later stage
+    DateTime? firstInstallmentDueDate,
+    List<double>? customInstallmentAmounts,
   }) async {
     _setLoading(true);
 
@@ -158,7 +112,7 @@ class SalesProvider with ChangeNotifier {
 
     if (isInstallment && customInstallmentAmounts != null) {
         double sumOfCustomInstallments = customInstallmentAmounts.fold(0.0, (sum, amount) => sum + amount);
-        if (sumOfCustomInstallments.toStringAsFixed(2) != totalAmount.toStringAsFixed(2)) { // Compare with precision
+        if (sumOfCustomInstallments.toStringAsFixed(2) != totalAmount.toStringAsFixed(2)) {
             _setError("Sum of custom installment amounts (${sumOfCustomInstallments.toStringAsFixed(2)}) must equal total invoice amount (${totalAmount.toStringAsFixed(2)}).");
             _setLoading(false);
             return null;
@@ -167,7 +121,6 @@ class SalesProvider with ChangeNotifier {
 
     final String invoiceNumberString = await _generateNextInvoiceNumber();
     if (invoiceNumberString.startsWith("ERR-NO-SETTINGS")) {
-      // Error already set by _generateNextInvoiceNumber
       _setLoading(false);
       return null;
     }
@@ -176,28 +129,24 @@ class SalesProvider with ChangeNotifier {
       invoiceNumber: invoiceNumberString,
       invoiceDate: invoiceDate,
       customerID: customerId,
-      // customerName: customerName,
       totalAmount: totalAmount,
-      amountPaid: 0.0, // Initially unpaid
+      amountPaid: 0.0,
       paymentStatus: 'Unpaid',
       notes: notes,
       isInstallment: isInstallment,
       numberOfInstallments: isInstallment ? numberOfInstallments : null,
       defaultInstallmentAmount: isInstallment ? (totalAmount / numberOfInstallments!) : null,
-      installments: [], // Will be populated below
+      installments: [],
     );
 
     final db = await _dbService.database;
     try {
+      SalesInvoice? finalInvoice;
       await db.transaction((txn) async {
-        // 1. Insert Sales_Invoice
         final invoiceId = await txn.insert('Sales_Invoices', newInvoice.toMap());
         newInvoice = newInvoice.copyWith(invoiceID: invoiceId);
+        finalInvoice = newInvoice;
 
-        // 1.5 Update LastInvoiceSequence in CompanySettings
-        // Extract prefix and sequence from the generated invoiceNumberString
-        // This is a bit coupled; _generateNextInvoiceNumber could return both parts.
-        // For now, we parse. Example: "INV-00001"
         final parts = invoiceNumberString.split('-');
         if (parts.length >= 2) {
             final currentSequence = int.tryParse(parts.last);
@@ -205,46 +154,37 @@ class SalesProvider with ChangeNotifier {
             if (currentSequence != null) {
                  await _updateNextInvoiceSequence(currentPrefix, currentSequence, txn);
             } else {
-                // This should not happen if _generateNextInvoiceNumber is correct
                 debugPrint("Error: Could not parse sequence from invoice number for settings update.");
             }
         }
 
-
-        // 2. Insert Sales_Invoice_Items and Update Product Stock
         for (var item in items) {
           if (item.productID == null) {
-            // This case should ideally be prevented by UI validation
             throw Exception("Product ID is null for item: ${item.productName}. Cannot process sale.");
           }
           await txn.insert('Sales_Invoice_Items', item.toMap(invoiceId));
 
-          // Update product stock and add inventory movement
           bool stockUpdated = await _productProvider.sellProduct(
             item.productID!,
             item.quantity,
             invoiceId,
-            "SalesInvoice", // relatedDocumentType
+            "SalesInvoice",
             txn: txn
           );
           if (!stockUpdated) {
-            // If stock update fails (e.g., insufficient stock detected inside sellProduct if not checked before),
-            // the transaction will be rolled back by throwing an exception.
             throw Exception("Failed to update stock for product: ${item.productName}. ${_productProvider.errorMessage ?? ''}");
           }
         }
 
-        // 3. Update Customer Balance
         bool balanceUpdated = await _customerProvider.updateCustomerBalance(
           customerId,
-          totalAmount, // Customer owes this amount
+          totalAmount,
           txn: txn
         );
         if (!balanceUpdated) {
           throw Exception("Failed to update customer balance. ${_customerProvider.errorMessage ?? ''}");
         }
 
-        // 4. Insert Invoice_Installments if applicable
         if (newInvoice.isInstallment) {
           List<InvoiceInstallment> generatedInstallments = [];
           double remainingAmount = newInvoice.totalAmount;
@@ -254,12 +194,10 @@ class SalesProvider with ChangeNotifier {
             if (i == 0) {
               dueDate = firstInstallmentDueDate!;
             } else {
-              // Add one month to the previous due date
               DateTime prevDueDate = generatedInstallments.last.dueDate;
               dueDate = DateTime(prevDueDate.year, prevDueDate.month + 1, prevDueDate.day);
-              // Handle cases where day might not exist in next month (e.g. Jan 31 -> Feb 28/29)
-              if (dueDate.month != (prevDueDate.month + 1) % 12 && (prevDueDate.month + 1) != 12) { // check if month wrapped around incorrectly
-                  dueDate = DateTime(prevDueDate.year, prevDueDate.month + 2, 0); // last day of correct month
+              if (dueDate.month != (prevDueDate.month + 1) % 12 && (prevDueDate.month + 1) != 12) {
+                  dueDate = DateTime(prevDueDate.year, prevDueDate.month + 2, 0);
               }
             }
 
@@ -267,15 +205,13 @@ class SalesProvider with ChangeNotifier {
             if (customInstallmentAmounts != null && i < customInstallmentAmounts.length) {
                 installmentAmount = customInstallmentAmounts[i];
             } else {
-                // Distribute remaining amount for last installment to avoid precision issues
                 installmentAmount = (i == newInvoice.numberOfInstallments! - 1)
                                   ? remainingAmount
                                   : (newInvoice.defaultInstallmentAmount ?? (newInvoice.totalAmount / newInvoice.numberOfInstallments!));
-                installmentAmount = double.parse(installmentAmount.toStringAsFixed(2)); // round to 2 decimal places
+                installmentAmount = double.parse(installmentAmount.toStringAsFixed(2));
             }
             remainingAmount -= installmentAmount;
             remainingAmount = double.parse(remainingAmount.toStringAsFixed(2));
-
 
             InvoiceInstallment installment = InvoiceInstallment(
               invoiceID: invoiceId,
@@ -286,22 +222,22 @@ class SalesProvider with ChangeNotifier {
             final installmentId = await txn.insert('Invoice_Installments', installment.toMap());
             generatedInstallments.add(installment.copyWith(installmentID: installmentId));
           }
-          newInvoice = newInvoice.copyWith(installments: generatedInstallments);
+          finalInvoice = finalInvoice!.copyWith(installments: generatedInstallments);
         }
-        // TODO: Update Customer Balance
       });
 
-      _invoices.add(newInvoice); // Add to local list (consider sorting or refetching for consistency)
-      notifyListeners();
+      if (finalInvoice != null) {
+        _invoices.add(finalInvoice!);
+        notifyListeners();
+      }
       _setLoading(false);
-      return newInvoice;
+      return finalInvoice;
 
     } catch (e) {
       debugPrint("Error creating invoice in SalesProvider: $e");
-      _setError("Failed to create invoice. $e");
+      _setError("Failed to create invoice. ${e.toString()}");
       _setLoading(false);
       return null;
     }
   }
-  // Other methods (fetchInvoices, updateInvoice, deleteInvoice, recordPayment) will be added later.
 }

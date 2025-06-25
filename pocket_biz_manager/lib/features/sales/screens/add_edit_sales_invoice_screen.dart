@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../providers/sales_provider.dart';
 import '../models/sales_invoice_model.dart';
 import '../models/invoice_installment_model.dart';
+import '../models/sales_invoice_item_model.dart'; // Import the new model
 import '../../products/providers/product_provider.dart';
 import '../../products/models/product_model.dart';
 import '../../customers/providers/customer_provider.dart'; // Assuming this will exist
