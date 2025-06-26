@@ -1,38 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'app/app_theme.dart';
-// Removed duplicate: import 'package:flutter/material.dart';
-// Removed duplicate: import 'package:provider/provider.dart';
-// Removed duplicate: import 'app/app_theme.dart'; // app_theme was also duplicated in the error list implicitly
 import 'core/database/database_service.dart';
 import 'features/categories/providers/category_provider.dart';
 import 'features/payment_methods/providers/payment_method_provider.dart';
 import 'features/products/providers/product_provider.dart';
+import 'features/collection_agencies/providers/collection_agency_provider.dart';
+import 'features/sales/providers/sales_provider.dart';
+import 'features/customers/providers/customer_provider.dart';
+import 'features/suppliers/providers/supplier_provider.dart';
+import 'features/settings/providers/settings_provider.dart';
+
 import 'features/categories/screens/categories_screen.dart';
 import 'features/payment_methods/screens/payment_methods_screen.dart';
 import 'features/products/screens/products_screen.dart';
 import 'features/collection_agencies/screens/collection_agencies_screen.dart';
-import 'features/sales/screens/add_edit_sales_invoice_screen.dart';
+import 'features/sales/screens/sales_invoices_list_screen.dart'; // Import for the list screen
 import 'features/customers/screens/customers_screen.dart';
-import 'features/customers/providers/customer_provider.dart';
 import 'features/suppliers/screens/suppliers_screen.dart';
-import 'features/suppliers/providers/supplier_provider.dart';
-import 'features/settings/screens/general_settings_screen.dart'; // Added import for SettingsScreen
-import 'features/settings/providers/settings_provider.dart'; // Added import for SettingsProvider
+import 'features/settings/screens/general_settings_screen.dart';
+// import 'features/sales/screens/add_edit_sales_invoice_screen.dart'; // Usually navigated from list
 
 
-// Import other providers and screens later // This line can be removed
-
-void main() async { // Made main async for potential async initializations
-  // Ensure Flutter bindings are initialized
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Initialize Database
   final dbService = DatabaseService.instance;
-  await dbService.database; // This ensures the DB is opened/created and tables are created on first launch
-
-  // Initialize other services here later
-
+  await dbService.database;
   runApp(const MyApp());
 }
 
@@ -41,13 +34,15 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // MultiProvider will be used to provide various services and state managers
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => CategoryProvider()),
         ChangeNotifierProvider(create: (_) => PaymentMethodProvider()),
         ChangeNotifierProvider(create: (_) => ProductProvider()),
         ChangeNotifierProvider(create: (_) => CollectionAgencyProvider()),
+        ChangeNotifierProvider(create: (_) => CustomerProvider()),
+        ChangeNotifierProvider(create: (_) => SupplierProvider()),
+        ChangeNotifierProvider(create: (_) => SettingsProvider()),
         ChangeNotifierProxyProvider3<SettingsProvider, ProductProvider, CustomerProvider, SalesProvider>(
           create: (context) => SalesProvider(
             settingsProvider: Provider.of<SettingsProvider>(context, listen: false),
@@ -61,26 +56,28 @@ class MyApp extends StatelessWidget {
             customerProvider: customerProvider,
           ),
         ),
-        ChangeNotifierProvider(create: (_) => CustomerProvider()),
-        ChangeNotifierProvider(create: (_) => SupplierProvider()),
-        ChangeNotifierProvider(create: (_) => SettingsProvider()),
-        // TODO: Add other providers for features here (Example: ThemeNotifier if used)
-        // ChangeNotifierProvider(create: (_) => ThemeNotifier()),
       ],
       child: MaterialApp(
-        title: 'PocketBiz Manager', // NAD Currency will be handled by intl
+        title: 'PocketBiz Manager',
         theme: AppTheme.lightTheme,
-        // darkTheme: AppTheme.darkTheme, // Optional dark theme
-        // themeMode: ThemeMode.system, // Or user-selectable
-        home: const PlaceholderScreen(), // Replace with actual home screen later
-        debugShowCheckedModeBanner: false, // Hides the debug banner
-        // Define routes here later
+        home: const PlaceholderScreen(),
+        debugShowCheckedModeBanner: false,
+        routes: { // Define routes for easier navigation
+          CategoriesScreen.routeName: (ctx) => const CategoriesScreen(),
+          PaymentMethodsScreen.routeName: (ctx) => const PaymentMethodsScreen(),
+          ProductsScreen.routeName: (ctx) => const ProductsScreen(),
+          CollectionAgenciesScreen.routeName: (ctx) => const CollectionAgenciesScreen(),
+          CustomersScreen.routeName: (ctx) => const CustomersScreen(),
+          SuppliersScreen.routeName: (ctx) => const SuppliersScreen(),
+          GeneralSettingsScreen.routeName: (ctx) => const GeneralSettingsScreen(),
+          SalesInvoicesListScreen.routeName: (ctx) => const SalesInvoicesListScreen(),
+          // AddEditSalesInvoiceScreen.routeName will be pushed directly, or add here if needed
+        },
       ),
     );
   }
 }
 
-// A temporary placeholder screen, modified to navigate to various management screens
 class PlaceholderScreen extends StatelessWidget {
   const PlaceholderScreen({super.key});
 
@@ -91,97 +88,61 @@ class PlaceholderScreen extends StatelessWidget {
         title: const Text('PocketBiz Manager (NAD)'),
       ),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text('Welcome! App is in English.'),
-            const Text('Currency: NAD'),
-            const SizedBox(height: 20),
-            const Text('Project Setup & DB Schema Implemented.'),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).push(MaterialPageRoute(
-                  builder: (ctx) => const CategoriesScreen(),
-                ));
-              },
-              child: const Text('Manage Categories'),
-            ),
-            const SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).push(MaterialPageRoute(
-                  builder: (ctx) => const PaymentMethodsScreen(),
-                ));
-              },
-              child: const Text('Manage Payment Methods'),
-            ),
-            const SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).push(MaterialPageRoute(
-                  builder: (ctx) => const ProductsScreen(),
-                ));
-              },
-              child: const Text('Manage Products'),
-            ),
-            const SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).push(MaterialPageRoute(
-                  builder: (ctx) => const CollectionAgenciesScreen(),
-                ));
-              },
-              child: const Text('Manage Collection Agencies'),
-            ),
-            const SizedBox(height: 10),
-             ElevatedButton(
-              onPressed: () {
-                // TODO: For a real app, ensure CustomerProvider is initialized and has data
-                // For now, we'll assume it's handled or we'll add dummy data for testing.
-                // It's better to have a proper CustomerProvider.
-                // For testing without a full CustomerProvider, one might pass dummy data or allow
-                // manual customer ID entry in AddEditSalesInvoiceScreen for now.
-                // For this example, we'll just navigate.
-                // Ensure CustomerProvider is provided in MultiProvider if AddEditSalesInvoiceScreen depends on it.
-                // We need to create a basic CustomerProvider and Customer model for this to work.
-                // Let's assume they will be created.
-                Navigator.of(context).push(MaterialPageRoute(
-                  builder: (ctx) => const AddEditSalesInvoiceScreen(),
-                ));
-              },
-              child: const Text('Create New Sales Invoice'),
-            ),
-            const SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).push(MaterialPageRoute(
-                  builder: (ctx) => const CustomersScreen(),
-                ));
-              },
-              child: const Text('Manage Customers'),
-            ),
-            const SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).push(MaterialPageRoute(
-                  builder: (ctx) => const SuppliersScreen(),
-                ));
-              },
-              child: const Text('Manage Suppliers'),
-            ),
-            const SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).push(MaterialPageRoute(
-                  builder: (ctx) => const GeneralSettingsScreen(),
-                ));
-              },
-              child: const Text('General Settings'),
-            ),
-            const SizedBox(height: 10),
-            const Text('Next step: Update SalesProvider for Invoice Numbering.'),
-          ],
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text('Welcome! App is in English.'),
+              const Text('Currency: NAD'),
+              const SizedBox(height: 20),
+
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pushNamed(CategoriesScreen.routeName),
+                child: const Text('Manage Categories'),
+              ),
+              const SizedBox(height: 10),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pushNamed(PaymentMethodsScreen.routeName),
+                child: const Text('Manage Payment Methods'),
+              ),
+              const SizedBox(height: 10),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pushNamed(ProductsScreen.routeName),
+                child: const Text('Manage Products'),
+              ),
+              const SizedBox(height: 10),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pushNamed(CollectionAgenciesScreen.routeName),
+                child: const Text('Manage Collection Agencies'),
+              ),
+              const SizedBox(height: 10),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pushNamed(CustomersScreen.routeName),
+                child: const Text('Manage Customers'),
+              ),
+              const SizedBox(height: 10),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pushNamed(SuppliersScreen.routeName),
+                child: const Text('Manage Suppliers'),
+              ),
+              const SizedBox(height: 10),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pushNamed(GeneralSettingsScreen.routeName),
+                child: const Text('General Settings'),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.secondary),
+                onPressed: () {
+                  Navigator.of(context).pushNamed(SalesInvoicesListScreen.routeName);
+                },
+                child: const Text('Sales Invoices'),
+              ),
+              const SizedBox(height: 10),
+              const Text('Next step: Sales Invoice Detail Screen.'),
+            ],
+          ),
         ),
       ),
     );

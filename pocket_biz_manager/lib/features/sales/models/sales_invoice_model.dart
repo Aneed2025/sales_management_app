@@ -7,8 +7,8 @@ class SalesInvoice {
   final int? invoiceID;
   final String invoiceNumber;
   final DateTime invoiceDate;
-  final int customerID; // Assuming a Customer model/ID exists
-  // final String customerName; // For display, might be fetched via join or from Customer object
+  final int customerID;
+  final String? customerName; // For display, fetched via join or from Customer object
 
   double totalAmount;
   double amountPaid;
@@ -48,7 +48,7 @@ class SalesInvoice {
     this.isInCollection = false,
     this.dateSentToCollection,
     this.collectionAgencyID,
-    // this.collectionAgencyName,
+    this.customerName,
   }) : balanceDue = totalAmount - amountPaid;
 
 
@@ -83,7 +83,7 @@ class SalesInvoice {
       invoiceNumber: map['InvoiceNumber'],
       invoiceDate: DateTime.parse(map['InvoiceDate']),
       customerID: map['CustomerID'],
-      // customerName: map['CustomerName'] ?? '', // Assuming CustomerName might be joined
+      customerName: map['CustomerName'], // Now part of the model from JOIN
       totalAmount: total,
       amountPaid: paid,
       paymentStatus: map['PaymentStatus'] ?? 'Unpaid',
@@ -120,7 +120,7 @@ class SalesInvoice {
     bool? isInCollection,
     DateTime? dateSentToCollection,
     int? collectionAgencyID,
-    // String? collectionAgencyName,
+    String? customerName, // Added customerName to copyWith
   }) {
     final newTotalAmount = totalAmount ?? this.totalAmount;
     final newAmountPaid = amountPaid ?? this.amountPaid;
@@ -142,7 +142,7 @@ class SalesInvoice {
       isInCollection: isInCollection ?? this.isInCollection,
       dateSentToCollection: dateSentToCollection ?? this.dateSentToCollection,
       collectionAgencyID: collectionAgencyID ?? this.collectionAgencyID,
-      // collectionAgencyName: collectionAgencyName ?? this.collectionAgencyName,
+      customerName: customerName ?? this.customerName,
     );
   }
 }
