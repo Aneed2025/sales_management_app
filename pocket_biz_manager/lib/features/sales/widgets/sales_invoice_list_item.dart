@@ -53,8 +53,8 @@ class SalesInvoiceListItem extends StatelessWidget {
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-      child: InkWell( // Use InkWell for onTap effect
-        onTap: onTap,
+      child: InkWell(
+        onTap: onTap, // onTap is passed from SalesInvoicesListScreen which will handle navigation
         child: Padding(
           padding: const EdgeInsets.all(12.0),
           child: Column(

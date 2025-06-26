@@ -181,21 +181,18 @@ class DatabaseService {
     });
   }
 
-  // --- Category ---
   Future<int> insertCategory(Map<String, dynamic> row) async { Database db = await instance.database; return await db.insert('Categories', row); }
   Future<List<Map<String, dynamic>>> getAllCategories() async { Database db = await instance.database; return await db.query('Categories', orderBy: 'CategoryName ASC'); }
   Future<Map<String, dynamic>?> getCategoryById(int id) async { Database db = await instance.database; List<Map<String, dynamic>> maps = await db.query('Categories', where: 'CategoryID = ?', whereArgs: [id]); if (maps.isNotEmpty) return maps.first; return null; }
   Future<int> updateCategory(Map<String, dynamic> row) async { Database db = await instance.database; int id = row['CategoryID']; return await db.update('Categories', row, where: 'CategoryID = ?', whereArgs: [id]); }
   Future<int> deleteCategory(int id) async { Database db = await instance.database; /* TODO: Check usage */ return await db.delete('Categories', where: 'CategoryID = ?', whereArgs: [id]); }
 
-  // --- PaymentMethod ---
   Future<int> insertPaymentMethod(Map<String, dynamic> row) async { Database db = await instance.database; return await db.insert('Payment_Methods', row); }
   Future<List<Map<String, dynamic>>> getAllPaymentMethods() async { Database db = await instance.database; return await db.query('Payment_Methods', orderBy: 'IsActive DESC, MethodName ASC'); }
   Future<Map<String, dynamic>?> getPaymentMethodById(int id) async { Database db = await instance.database; List<Map<String, dynamic>> maps = await db.query('Payment_Methods', where: 'PaymentMethodID = ?', whereArgs: [id]); if (maps.isNotEmpty) return maps.first; return null; }
   Future<int> updatePaymentMethod(Map<String, dynamic> row) async { Database db = await instance.database; int id = row['PaymentMethodID']; return await db.update('Payment_Methods', row, where: 'PaymentMethodID = ?', whereArgs: [id]); }
   Future<int> deletePaymentMethod(int id) async { Database db = await instance.database; /* TODO: Check usage */ return await db.delete('Payment_Methods', where: 'PaymentMethodID = ?', whereArgs: [id]); }
 
-  // --- Product ---
   Future<int> insertProduct(Map<String, dynamic> row) async { Database db = await instance.database; return await db.insert('Products', row); }
   Future<List<Map<String, dynamic>>> getAllProductsWithCategoryName() async { Database db = await instance.database; return await db.rawQuery('''
     SELECT P.*, C.CategoryName FROM Products P LEFT JOIN Categories C ON P.CategoryID = C.CategoryID ORDER BY P.ProductName ASC
@@ -207,20 +204,17 @@ class DatabaseService {
   Future<int> deleteProduct(int id) async { Database db = await instance.database; /* TODO: Check usage */ return await db.delete('Products', where: 'ProductID = ?', whereArgs: [id]); }
   Future<int> updateProductStock(int productId, double newStock, {DatabaseExecutor? txn}) async { final db = txn ?? await instance.database; return await db.update('Products', {'CurrentStock': newStock}, where: 'ProductID = ?', whereArgs: [productId]); }
 
-  // --- CollectionAgency ---
   Future<int> insertCollectionAgency(Map<String, dynamic> row) async { Database db = await instance.database; return await db.insert('Collection_Agencies', row); }
   Future<List<Map<String, dynamic>>> getAllCollectionAgencies() async { Database db = await instance.database; return await db.query('Collection_Agencies', orderBy: 'IsActive DESC, AgencyName ASC'); }
   Future<Map<String, dynamic>?> getCollectionAgencyById(int id) async { Database db = await instance.database; List<Map<String, dynamic>> maps = await db.query('Collection_Agencies', where: 'AgencyID = ?', whereArgs: [id]); if (maps.isNotEmpty) return maps.first; return null; }
   Future<int> updateCollectionAgency(Map<String, dynamic> row) async { Database db = await instance.database; int id = row['AgencyID']; return await db.update('Collection_Agencies', row, where: 'AgencyID = ?', whereArgs: [id]); }
   Future<int> deleteCollectionAgency(int id) async { Database db = await instance.database; /* TODO: Check usage */ return await db.delete('Collection_Agencies', where: 'AgencyID = ?', whereArgs: [id]); }
 
-  // --- InvoiceInstallment ---
   Future<int> insertInvoiceInstallment(Map<String, dynamic> row, {DatabaseExecutor? txn}) async { final db = txn ?? await instance.database; return await db.insert('Invoice_Installments', row); }
-  Future<List<Map<String, dynamic>>> getInstallmentsForInvoice(int invoiceID) async { Database db = await instance.database; return await db.query('Invoice_Installments', where: 'InvoiceID = ?', whereArgs: [invoiceID], orderBy: 'InstallmentNumber ASC'); }
+  Future<List<Map<String, dynamic>>> getInstallmentsForInvoice(int invoiceID, {DatabaseExecutor? txn}) async { final db = txn ?? await instance.database; return await db.query('Invoice_Installments', where: 'InvoiceID = ?', whereArgs: [invoiceID], orderBy: 'InstallmentNumber ASC'); }
   Future<int> updateInvoiceInstallment(Map<String, dynamic> row, {DatabaseExecutor? txn}) async { final db = txn ?? await instance.database; int id = row['InstallmentID']; return await db.update('Invoice_Installments', row, where: 'InstallmentID = ?', whereArgs: [id]); }
   Future<int> deleteInstallmentsForInvoice(int invoiceID, {DatabaseExecutor? txn}) async { final db = txn ?? await instance.database; return await db.delete('Invoice_Installments', where: 'InvoiceID = ?', whereArgs: [invoiceID]); }
 
-  // --- Customer ---
   Future<int> insertCustomer(Map<String, dynamic> row) async { Database db = await instance.database; return await db.insert('Customers', row); }
   Future<List<Map<String, dynamic>>> getAllCustomers() async { Database db = await instance.database; return await db.query('Customers', orderBy: 'CustomerName ASC'); }
   Future<Map<String, dynamic>?> getCustomerById(int id) async { Database db = await instance.database; List<Map<String, dynamic>> maps = await db.query('Customers', where: 'CustomerID = ?', whereArgs: [id]); if (maps.isNotEmpty) return maps.first; return null; }
@@ -228,7 +222,6 @@ class DatabaseService {
   Future<int> deleteCustomer(int id) async { Database db = await instance.database; /* TODO: Check usage */ return await db.delete('Customers', where: 'CustomerID = ?', whereArgs: [id]); }
   Future<int> updateCustomerBalance(int customerId, double newBalance, {DatabaseExecutor? txn}) async { final db = txn ?? await instance.database; return await db.update('Customers', {'Balance': newBalance}, where: 'CustomerID = ?', whereArgs: [customerId]); }
 
-  // --- Supplier ---
   Future<int> insertSupplier(Map<String, dynamic> row) async { Database db = await instance.database; return await db.insert('Suppliers', row); }
   Future<List<Map<String, dynamic>>> getAllSuppliers() async { Database db = await instance.database; return await db.query('Suppliers', orderBy: 'SupplierName ASC'); }
   Future<Map<String, dynamic>?> getSupplierById(int id) async { Database db = await instance.database; List<Map<String, dynamic>> maps = await db.query('Suppliers', where: 'SupplierID = ?', whereArgs: [id]); if (maps.isNotEmpty) return maps.first; return null; }
@@ -236,30 +229,69 @@ class DatabaseService {
   Future<int> deleteSupplier(int id) async { Database db = await instance.database; /* TODO: Check usage */ return await db.delete('Suppliers', where: 'SupplierID = ?', whereArgs: [id]); }
   Future<int> updateSupplierBalance(int supplierId, double newBalance, {DatabaseExecutor? txn}) async { final db = txn ?? await instance.database; return await db.update('Suppliers', {'Balance': newBalance}, where: 'SupplierID = ?', whereArgs: [supplierId]); }
 
-  // --- CompanySettings ---
-  Future<Map<String, dynamic>?> getCompanySettings() async { Database db = await instance.database; List<Map<String, dynamic>> maps = await db.query('Company_Settings', where: 'SettingID = ?', whereArgs: [1]); if (maps.isNotEmpty) return maps.first; return null; }
+  Future<Map<String, dynamic>?> getCompanySettings() async { Database db = await instance.database; List<Map<String, dynamic>> maps = await db.query('Company_Settings', where: 'SettingID = ?', whereArgs: [1]); if (maps.isNotEmpty) return maps.first; /* Seed in onCreate should prevent null */ return {'SettingID': 1, 'CurrencySymbol': 'NAD', 'LastInvoiceSequence': 0, 'InvoicePrefix': 'INV'}; }
   Future<int> updateCompanySettings(Map<String, dynamic> row) async { Database db = await instance.database; if (!row.containsKey('SettingID') || row['SettingID'] != 1) { row['SettingID'] = 1; } return await db.update('Company_Settings', row, where: 'SettingID = ?', whereArgs: [1], conflictAlgorithm: ConflictAlgorithm.replace); }
   Future<int> updateInvoiceSequenceSettings(String? prefix, int sequence, {DatabaseExecutor? txn}) async { final db = txn ?? await instance.database; return await db.update('Company_Settings', {'InvoicePrefix': prefix, 'LastInvoiceSequence': sequence}, where: 'SettingID = ?', whereArgs: [1]); }
 
-  // --- InventoryMovement ---
   Future<int> insertInventoryMovement(Map<String, dynamic> row, {DatabaseExecutor? txn}) async { final db = txn ?? await instance.database; return await db.insert('Inventory_Movements', row); }
 
-  // --- SalesInvoice ---
   Future<List<Map<String, dynamic>>> getAllSalesInvoicesWithCustomerName() async {
     Database db = await instance.database;
-    final List<Map<String, dynamic>> maps = await db.rawQuery('''
+    return await db.rawQuery('''
       SELECT
         SI.InvoiceID, SI.InvoiceNumber, SI.InvoiceDate, SI.CustomerID,
         SI.TotalAmount, SI.AmountPaid, SI.BalanceDue, SI.PaymentStatus,
         SI.IsInstallment, SI.NumberOfInstallments, SI.DefaultInstallmentAmount,
         SI.IsInCollection, SI.DateSentToCollection, SI.CollectionAgencyID,
         SI.Notes, SI.CreatedByUserID,
-        C.CustomerName
+        C.CustomerName, CA.AgencyName AS CollectionAgencyName
       FROM Sales_Invoices SI
       LEFT JOIN Customers C ON SI.CustomerID = C.CustomerID
+      LEFT JOIN Collection_Agencies CA ON SI.CollectionAgencyID = CA.AgencyID
       ORDER BY SI.InvoiceDate DESC, SI.InvoiceID DESC
     ''');
-    return maps;
   }
-  // TODO: Add other SalesInvoice specific methods like getSalesInvoiceByIdWithDetails, updateSalesInvoice, deleteSalesInvoice
+
+  Future<Map<String, dynamic>?> getSalesInvoiceByIdWithDetails(int invoiceId) async {
+    Database db = await instance.database;
+    Map<String, dynamic>? invoiceDetails;
+
+    final List<Map<String, dynamic>> invoiceMaps = await db.rawQuery('''
+      SELECT
+        SI.*,
+        C.CustomerName,
+        CA.AgencyName AS CollectionAgencyName,
+        CA.PhoneNumber AS CollectionAgencyContact -- Added this field
+      FROM Sales_Invoices SI
+      LEFT JOIN Customers C ON SI.CustomerID = C.CustomerID
+      LEFT JOIN Collection_Agencies CA ON SI.CollectionAgencyID = CA.AgencyID
+      WHERE SI.InvoiceID = ?
+    ''', [invoiceId]);
+
+    if (invoiceMaps.isNotEmpty) {
+      invoiceDetails = Map<String, dynamic>.from(invoiceMaps.first);
+
+      final List<Map<String, dynamic>> itemMaps = await db.rawQuery('''
+        SELECT SII.*, P.ProductName
+        FROM Sales_Invoice_Items SII
+        LEFT JOIN Products P ON SII.ProductID = P.ProductID
+        WHERE SII.InvoiceID = ?
+        ORDER BY SII.InvoiceItemID ASC
+      ''', [invoiceId]);
+      invoiceDetails['items'] = itemMaps;
+
+      final List<Map<String, dynamic>> installmentMaps = await getInstallmentsForInvoice(invoiceId, txn: db); // Use existing getter
+      invoiceDetails['installments'] = installmentMaps;
+
+      final List<Map<String, dynamic>> paymentMaps = await db.rawQuery('''
+        SELECT SP.*, PM.MethodName AS PaymentMethodName
+        FROM Sales_Payments SP
+        LEFT JOIN Payment_Methods PM ON SP.PaymentMethodID = PM.PaymentMethodID
+        WHERE SP.InvoiceID = ?
+        ORDER BY SP.PaymentDate ASC
+      ''', [invoiceId]);
+      invoiceDetails['payments'] = paymentMaps;
+    }
+    return invoiceDetails;
+  }
 }

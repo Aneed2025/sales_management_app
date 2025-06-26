@@ -1,7 +1,8 @@
 // Placeholder for SalesInvoiceItem model, will be defined properly later or in its own file
 // For now, we might handle items as List<Map<String, dynamic>> or similar in the provider
-// import 'sales_invoice_item_model.dart';
+import 'sales_invoice_item_model.dart';
 import 'invoice_installment_model.dart';
+import 'sales_payment_model.dart'; // Import SalesPayment model
 
 class SalesInvoice {
   final int? invoiceID;
@@ -21,14 +22,20 @@ class SalesInvoice {
   // Installment Fields
   bool isInstallment;
   int? numberOfInstallments;
-  double? defaultInstallmentAmount; // Initial calculated amount per installment
-  List<InvoiceInstallment> installments; // List of actual installment objects
+  double? defaultInstallmentAmount;
+  List<InvoiceInstallment> installments;
 
   // Collection Agency Fields
   bool isInCollection;
   DateTime? dateSentToCollection;
-  int? collectionAgencyID; // FK to CollectionAgencies table
-  // final String? collectionAgencyName; // For display
+  int? collectionAgencyID;
+  final String? collectionAgencyName; // For display from JOIN
+  final String? collectionAgencyContact; // For display from JOIN
+
+
+  // Items and Payments - not directly stored in Sales_Invoices table but populated by provider
+  List<SalesInvoiceItem> items;
+  List<SalesPayment> payments;
 
   SalesInvoice({
     this.invoiceID,
@@ -49,6 +56,10 @@ class SalesInvoice {
     this.dateSentToCollection,
     this.collectionAgencyID,
     this.customerName,
+    this.collectionAgencyName,
+    this.collectionAgencyContact,
+    this.items = const [],
+    this.payments = const [],
   }) : balanceDue = totalAmount - amountPaid;
 
 
@@ -71,8 +82,9 @@ class SalesInvoice {
       'DateSentToCollection': dateSentToCollection?.toIso8601String(),
       'CollectionAgencyID': collectionAgencyID,
     };
-    // Note: 'installments' list is not directly stored in Sales_Invoices table,
-    // but in the separate Invoice_Installments table.
+    // Note: 'installments', 'items', 'payments' lists are not directly stored in Sales_Invoices table,
+    // but in their respective tables or populated by provider.
+    // customerName, collectionAgencyName, collectionAgencyContact are also not in Sales_Invoices table.
   }
 
   factory SalesInvoice.fromMap(Map<String, dynamic> map) {
@@ -83,7 +95,7 @@ class SalesInvoice {
       invoiceNumber: map['InvoiceNumber'],
       invoiceDate: DateTime.parse(map['InvoiceDate']),
       customerID: map['CustomerID'],
-      customerName: map['CustomerName'], // Now part of the model from JOIN
+      customerName: map['CustomerName'],
       totalAmount: total,
       amountPaid: paid,
       paymentStatus: map['PaymentStatus'] ?? 'Unpaid',
@@ -97,8 +109,12 @@ class SalesInvoice {
           ? DateTime.parse(map['DateSentToCollection'])
           : null,
       collectionAgencyID: map['CollectionAgencyID'],
-      // collectionAgencyName: map['AgencyName'], // If joined from Collection_Agencies
-      installments: [], // Installments should be fetched separately
+      collectionAgencyName: map['CollectionAgencyName'], // From JOIN
+      collectionAgencyContact: map['CollectionAgencyContact'], // From JOIN
+      // items, installments, payments will be populated by the provider after fetching
+      items: [],
+      installments: [],
+      payments: [],
     );
   }
 
@@ -107,7 +123,7 @@ class SalesInvoice {
     String? invoiceNumber,
     DateTime? invoiceDate,
     int? customerID,
-    // String? customerName,
+    String? customerName,
     double? totalAmount,
     double? amountPaid,
     String? paymentStatus,
@@ -120,7 +136,10 @@ class SalesInvoice {
     bool? isInCollection,
     DateTime? dateSentToCollection,
     int? collectionAgencyID,
-    String? customerName, // Added customerName to copyWith
+    String? collectionAgencyName, // Added
+    String? collectionAgencyContact, // Added
+    List<SalesInvoiceItem>? items, // Added
+    List<SalesPayment>? payments, // Added
   }) {
     final newTotalAmount = totalAmount ?? this.totalAmount;
     final newAmountPaid = amountPaid ?? this.amountPaid;
@@ -129,7 +148,7 @@ class SalesInvoice {
       invoiceNumber: invoiceNumber ?? this.invoiceNumber,
       invoiceDate: invoiceDate ?? this.invoiceDate,
       customerID: customerID ?? this.customerID,
-      // customerName: customerName ?? this.customerName,
+      customerName: customerName ?? this.customerName,
       totalAmount: newTotalAmount,
       amountPaid: newAmountPaid,
       paymentStatus: paymentStatus ?? this.paymentStatus,
@@ -138,11 +157,14 @@ class SalesInvoice {
       isInstallment: isInstallment ?? this.isInstallment,
       numberOfInstallments: numberOfInstallments ?? this.numberOfInstallments,
       defaultInstallmentAmount: defaultInstallmentAmount ?? this.defaultInstallmentAmount,
-      installments: installments ?? List<InvoiceInstallment>.from(this.installments), // Create a new list
+      installments: installments ?? List<InvoiceInstallment>.from(this.installments),
       isInCollection: isInCollection ?? this.isInCollection,
       dateSentToCollection: dateSentToCollection ?? this.dateSentToCollection,
       collectionAgencyID: collectionAgencyID ?? this.collectionAgencyID,
-      customerName: customerName ?? this.customerName,
+      collectionAgencyName: collectionAgencyName ?? this.collectionAgencyName,
+      collectionAgencyContact: collectionAgencyContact ?? this.collectionAgencyContact,
+      items: items ?? List<SalesInvoiceItem>.from(this.items),
+      payments: payments ?? List<SalesPayment>.from(this.payments),
     );
   }
 }

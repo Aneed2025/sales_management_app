@@ -20,6 +20,11 @@ class SalesProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
+  SalesInvoice? _selectedDetailedInvoice;
+  SalesInvoice? get selectedDetailedInvoice => _selectedDetailedInvoice;
+  bool _isLoadingInvoiceDetails = false;
+  bool get isLoadingInvoiceDetails => _isLoadingInvoiceDetails;
+
   final SettingsProvider _settingsProvider;
   final ProductProvider _productProvider;
   final CustomerProvider _customerProvider;
@@ -290,6 +295,58 @@ class SalesProvider with ChangeNotifier {
       debugPrint("Error creating invoice in SalesProvider: $e");
       _setError("Failed to create invoice. ${e.toString()}");
       _setLoading(false);
+      return null;
+    }
+  }
+
+  Future<SalesInvoice?> fetchInvoiceDetails(int invoiceId) async {
+    _isLoadingInvoiceDetails = true;
+    _selectedDetailedInvoice = null; // Clear previous
+    notifyListeners(); // Notify UI that loading has started
+
+    try {
+      final Map<String, dynamic>? invoiceData = await _dbService.getSalesInvoiceByIdWithDetails(invoiceId);
+
+      if (invoiceData != null) {
+        // Base invoice object from the main part of invoiceData
+        SalesInvoice invoice = SalesInvoice.fromMap(invoiceData);
+
+        // Populate items
+        if (invoiceData['items'] != null && invoiceData['items'] is List) {
+          invoice.items = (invoiceData['items'] as List)
+              .map((itemMap) => SalesInvoiceItem.fromMap(itemMap as Map<String, dynamic>))
+              .toList();
+        }
+
+        // Populate installments
+        if (invoiceData['installments'] != null && invoiceData['installments'] is List) {
+          invoice.installments = (invoiceData['installments'] as List)
+              .map((instMap) => InvoiceInstallment.fromMap(instMap as Map<String, dynamic>))
+              .toList();
+        }
+
+        // Populate payments
+        if (invoiceData['payments'] != null && invoiceData['payments'] is List) {
+          invoice.payments = (invoiceData['payments'] as List)
+              .map((payMap) => SalesPayment.fromMap(payMap as Map<String, dynamic>))
+              .toList();
+        }
+
+        _selectedDetailedInvoice = invoice;
+        _isLoadingInvoiceDetails = false;
+        notifyListeners();
+        return _selectedDetailedInvoice;
+      } else {
+        _setError("Invoice details not found for ID: $invoiceId");
+        _isLoadingInvoiceDetails = false;
+        notifyListeners();
+        return null;
+      }
+    } catch (e) {
+      debugPrint("Error fetching invoice details for $invoiceId: $e");
+      _setError("Failed to load details for invoice ID: $invoiceId. ${e.toString()}");
+      _isLoadingInvoiceDetails = false;
+      notifyListeners();
       return null;
     }
   }

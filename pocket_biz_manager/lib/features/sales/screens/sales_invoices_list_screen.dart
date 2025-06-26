@@ -30,11 +30,7 @@ class _SalesInvoicesListScreenState extends State<SalesInvoicesListScreen> {
   }
 
   void _navigateToDetailScreen(BuildContext context, SalesInvoice invoice) {
-    // TODO: Implement navigation to SalesInvoiceDetailScreen
-    // Navigator.of(context).pushNamed(SalesInvoiceDetailScreen.routeName, arguments: invoice.invoiceID);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Navigate to detail for Invoice: ${invoice.invoiceNumber}')),
-    );
+    Navigator.of(context).pushNamed(SalesInvoiceDetailScreen.routeName, arguments: invoice.invoiceID);
   }
 
   @override

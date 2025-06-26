@@ -15,7 +15,8 @@ import 'features/categories/screens/categories_screen.dart';
 import 'features/payment_methods/screens/payment_methods_screen.dart';
 import 'features/products/screens/products_screen.dart';
 import 'features/collection_agencies/screens/collection_agencies_screen.dart';
-import 'features/sales/screens/sales_invoices_list_screen.dart'; // Import for the list screen
+import 'features/sales/screens/sales_invoices_list_screen.dart';
+import 'features/sales/screens/sales_invoice_detail_screen.dart'; // Import for the detail screen
 import 'features/customers/screens/customers_screen.dart';
 import 'features/suppliers/screens/suppliers_screen.dart';
 import 'features/settings/screens/general_settings_screen.dart';
@@ -62,7 +63,7 @@ class MyApp extends StatelessWidget {
         theme: AppTheme.lightTheme,
         home: const PlaceholderScreen(),
         debugShowCheckedModeBanner: false,
-        routes: { // Define routes for easier navigation
+        routes: {
           CategoriesScreen.routeName: (ctx) => const CategoriesScreen(),
           PaymentMethodsScreen.routeName: (ctx) => const PaymentMethodsScreen(),
           ProductsScreen.routeName: (ctx) => const ProductsScreen(),
@@ -71,7 +72,7 @@ class MyApp extends StatelessWidget {
           SuppliersScreen.routeName: (ctx) => const SuppliersScreen(),
           GeneralSettingsScreen.routeName: (ctx) => const GeneralSettingsScreen(),
           SalesInvoicesListScreen.routeName: (ctx) => const SalesInvoicesListScreen(),
-          // AddEditSalesInvoiceScreen.routeName will be pushed directly, or add here if needed
+          SalesInvoiceDetailScreen.routeName: (ctx) => const SalesInvoiceDetailScreen(), // Added route
         },
       ),
     );
@@ -140,7 +141,7 @@ class PlaceholderScreen extends StatelessWidget {
                 child: const Text('Sales Invoices'),
               ),
               const SizedBox(height: 10),
-              const Text('Next step: Sales Invoice Detail Screen.'),
+              const Text('Next step: Implement Record Sales Payment Screen.'),
             ],
           ),
         ),
